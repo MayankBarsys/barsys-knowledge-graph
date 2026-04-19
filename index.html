@@ -2375,7 +2375,71 @@ liquorButtonTv.setOnClickListener {
 startActivityForResult(
   Intent(<span class="ck">this</span>, SelectQuantityActivity::<span class="ck">class</span>.java).putExtra(<span class="cs">"item"</span>, selectedItem), <span class="cn">101</span>)`,
  conn:['custom-recipe-creation','ingredients-catalog','products-api','recipes-api','db-recipes-schema','media-upload','android-local-db'],
- guide:`<div class="gs"><div class="gt">Save a custom recipe on Android</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Select spirits in CreateFragment → opens SelectQuantityActivity per ingredient (requestCode 101)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">After quantity set, navigate to SaveDrinkActivity with ingredient list as Serializable extra</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">SaveDrinkActivity POSTs to <code>recipes-api</code> and inserts <code>UserRecipeModel</code> into Room DB</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Custom recipes require a Barsys 360 device to craft — Shaker Pro and Coaster 2.0 do not support the pour sequence</span></div></div></div>`}
+ guide:`<div class="gs"><div class="gt">Save a custom recipe on Android</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Select spirits in CreateFragment → opens SelectQuantityActivity per ingredient (requestCode 101)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">After quantity set, navigate to SaveDrinkActivity with ingredient list as Serializable extra</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">SaveDrinkActivity POSTs to <code>recipes-api</code> and inserts <code>UserRecipeModel</code> into Room DB</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Custom recipes require a Barsys 360 device to craft — Shaker Pro and Coaster 2.0 do not support the pour sequence</span></div></div></div>`},
+
+{id:'user-device-links-api',l:'User–Device Links',cat:'backend',sz:5,rel:.8,cl:'Go',
+ desc:'Links a user\'s Ory identity to one or more Barsys device numbers (migration 023: user_device_links table). POST /my/user-device-links registers a device under the authenticated user. GET returns all linked devices. DELETE /my/user-device-links/:deviceNumber removes a link. UNIQUE constraint on (user_id, device_number) prevents duplicate registrations. Enables the app to load the correct device config on login without re-pairing.',
+ code:`<span class="cm">GET</span>    /api/v1/my/user-device-links
+<span class="cm">POST</span>   /api/v1/my/user-device-links
+<span class="cm">DELETE</span> /api/v1/my/user-device-links/<span class="cn">:deviceNumber</span>
+
+<span class="ct">user_device_links</span> {
+  id UUID, user_id TEXT,
+  device_number TEXT,
+  <span class="cc">-- UNIQUE(user_id, device_number)</span>
+  created_at, updated_at
+}`,
+ conn:['devices-api','auth-api','ory','device-pairing-ui','defteros','postgres'],
+ guide:`<div class="gs"><div class="gt">Link a device to a user account</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">After BLE pairing completes, iOS calls POST /my/user-device-links with the device_number from the BLE advertisement</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Defteros inserts into user_device_links (unique constraint prevents duplicates)</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">On next login, GET /my/user-device-links returns all linked device numbers — app auto-connects without re-scanning BLE</span></div><div class="gstep"><span class="gsn">4</span><span class="gst">DELETE unlinks a device (e.g. factory reset or transfer to new owner)</span></div></div></div>`},
+
+{id:'made-cocktails-api',l:'Drink History API',cat:'backend',sz:5,rel:.8,cl:'Go',
+ desc:'Server-side drink crafting history (migration 024: made_cocktails table). POST /my/made-drinks/:recipe_id records each completed pour against the authenticated user. GET /my/made-drinks returns the full history. GET /my/repeated-drinks returns recipes made more than once. GET /my/crafted-drinks returns distinct crafted recipes. Feeds the streaks and analytics systems and powers "made before" UI hints on recipe cards.',
+ code:`<span class="cm">POST</span> /api/v1/my/made-drinks/<span class="cn">:recipe_id</span>
+<span class="cm">GET</span>  /api/v1/my/made-drinks
+<span class="cm">GET</span>  /api/v1/my/repeated-drinks
+<span class="cm">GET</span>  /api/v1/my/crafted-drinks
+
+<span class="ct">made_cocktails</span> {
+  id UUID,
+  cocktail_id UUID <span class="cc">→ cocktail_recipes</span>,
+  user_id TEXT,
+  created_at TIMESTAMPTZ
+}`,
+ conn:['drink-complete','recipes-api','streaks-api','analytics-api','crafting','defteros','postgres'],
+ guide:`<div class="gs"><div class="gt">How a drink pour is recorded server-side</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">BLE sends "DATA Flushed" → iOS fires drink-complete → calls POST /my/made-drinks/:recipe_id</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Defteros inserts a row into made_cocktails with the user_id (from Ory JWT) and cocktail_id</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">streaks-api reads made_cocktails to compute scanner and pour streaks</span></div><div class="gstep"><span class="gsn">4</span><span class="gst">GET /my/repeated-drinks powers "You've made this X times" on recipe detail screens</span></div></div></div>`},
+
+{id:'bond-feedback',l:'Bond AI Feedback',cat:'data',sz:4,rel:.75,cl:'Go',
+ desc:'Stores user thumbs-up/down ratings and optional comments on individual BarBot AI responses (migration 030: bond_feedback_01 table). Captures message_id, session_id, user_id, rating (positive/negative), reason category, conversation_turn, branch variant, locale, and app_version. Used for Bond AI model quality monitoring and A/B branch comparison. Multiple branch variants (branch column) allow comparing BarBot prompt strategies.',
+ code:`<span class="ct">bond_feedback_01</span> {
+  id UUID, message_id UUID UNIQUE,
+  comment TEXT,
+  session_id TEXT, user_id TEXT,
+  rating TEXT,     <span class="cc">-- "positive" | "negative"</span>
+  reason TEXT,
+  conversation_turn TEXT,
+  branch TEXT,     <span class="cc">-- A/B prompt variant</span>
+  locale TEXT, app_version TEXT,
+  platform TEXT
+}`,
+ conn:['chat-api','bond-ai','barbot','intelligence-api','postgres'],
+ guide:`<div class="gs"><div class="gt">Submit feedback on a BarBot response</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">User taps thumbs-up or thumbs-down on a BarBot message in the iOS chat UI</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">iOS POSTs feedback payload (message_id, rating, optional reason) to Bond service via /chat proxy</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Bond writes to bond_feedback_01; branch column captures which prompt variant generated the response</span></div><div class="gstep"><span class="gsn">4</span><span class="gst">Analytics team queries by branch + rating to compare BarBot prompt strategies</span></div></div></div>`},
+
+{id:'scraped-content-store',l:'Scraped Content Store',cat:'data',sz:4,rel:.7,cl:'Go',
+ desc:'PostgreSQL table barsys_scraped_content (migration 027) storing crawled Barsys website pages with dual 1536-dim pgvector embeddings: content_embedding and url_embedding, each indexed with HNSW cosine similarity. Provides the RAG knowledge base for Bond AI — Bond queries this table via vector similarity to ground BarBot answers in real Barsys product and content context. GRANT to ai_backend role.',
+ code:`<span class="ct">barsys_scraped_content</span> {
+  id UUID, url TEXT UNIQUE,
+  page_title TEXT,
+  content TEXT,
+  content_embedding <span class="ct">vector(1536)</span>,
+  url_embedding     <span class="ct">vector(1536)</span>,
+  created_at, updated_at
+}
+
+<span class="cc">-- HNSW cosine indexes on both embeddings</span>
+CREATE INDEX USING hnsw
+  (content_embedding vector_cosine_ops);`,
+ conn:['bond-ai','vector-embeddings','intelligence-api','chat-api','postgres','barbot-ml'],
+ guide:`<div class="gs"><div class="gt">How scraped content feeds Bond AI answers</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">A scraper crawls barsys.com pages and stores text + URL in barsys_scraped_content</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Embeddings are generated (1536-dim) for both the page content and the URL, stored as pgvector columns</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">When a user asks BarBot a question, Bond embeds the query and runs HNSW cosine search against content_embedding</span></div><div class="gstep"><span class="gsn">4</span><span class="gst">Top-k matching pages are injected as context into the BarBot system prompt before Claude generates the response</span></div></div></div>`}
 
 ];
 
