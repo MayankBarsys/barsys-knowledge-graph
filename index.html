@@ -1,0 +1,2620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>BARSYS AI // Knowledge Graph</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#080706;--sf:#0e0d0b;--cd:#141210;--tx:#d4c8b0;--t2:#b0a090;--t3:#857a70;
+--ac:#c4a265;--ag:rgba(196,162,101,0.09);--bd:rgba(196,162,101,0.20);
+--c-ios:#4A9EE8;--c-backend:#F0B840;--c-data:#C46EC8;--c-infra:#3EC996;--c-ble:#3ECFCF;
+}
+[data-theme=light]{
+--bg:#f5f0e8;--sf:#ebe6dc;--cd:#e0dbd0;--tx:#2a2520;--t2:#4a4038;--t3:#686058;
+--ac:#8a6a30;--ag:rgba(120,90,40,0.09);--bd:rgba(120,90,40,0.25);
+--c-ios:#1a6eaa;--c-backend:#b07c10;--c-data:#8a3a90;--c-infra:#1a8c60;--c-ble:#1a8c8c;
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--tx);overflow:hidden;width:100vw;height:100vh;font-weight:300}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+
+/* HUD */
+#hud{position:fixed;top:0;left:0;right:0;height:40px;background:color-mix(in srgb,var(--bg) 85%,transparent);
+backdrop-filter:blur(20px);border-bottom:0.5px solid var(--bd);display:flex;align-items:center;
+justify-content:space-between;padding:0 24px;z-index:200}
+.hud-l{display:flex;align-items:center;gap:16px}
+.hud-r{display:flex;align-items:center;gap:8px}
+.logo{font-weight:300;font-size:13px;letter-spacing:10px;color:var(--ac);text-transform:uppercase}
+.stats{font-family:'JetBrains Mono';font-size:8px;color:var(--t2);letter-spacing:1.5px}
+.hbtn{background:none;border:0.5px solid var(--bd);color:var(--t2);cursor:pointer;height:26px;
+border-radius:3px;font-family:'JetBrains Mono';font-size:8px;letter-spacing:1px;padding:0 10px;transition:all .3s}
+.hbtn:hover{border-color:var(--ac);color:var(--ac)}
+.hud-tabs{display:flex;border:0.5px solid var(--bd);border-radius:3px;overflow:hidden}
+.htab{background:none;border:none;border-right:0.5px solid var(--bd);color:var(--t3);cursor:pointer;
+font-family:'JetBrains Mono';font-size:8px;letter-spacing:1.5px;padding:0 14px;height:26px;transition:all .2s}
+.htab:last-child{border-right:none}
+.htab:hover{color:var(--tx);background:var(--ag)}
+.htab.active{background:var(--ag);color:var(--ac)}
+
+/* Canvas */
+#cv{position:fixed;top:40px;left:0;right:0;bottom:0;cursor:crosshair}
+#cv:active{cursor:grabbing}
+
+/* Tooltip */
+#tip{position:fixed;z-index:150;pointer-events:none;font-family:'JetBrains Mono';font-size:9px;
+padding:8px 14px;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(16px);
+border:0.5px solid var(--bd);border-radius:3px;color:var(--tx);opacity:0;transition:opacity .15s;
+max-width:260px;letter-spacing:0.5px;line-height:1.6;font-weight:300}
+#tip.on{opacity:1}
+.tip-cat{font-size:7px;color:var(--t3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px}
+.tip-conn{font-size:8px;color:var(--ac);margin-top:4px}
+
+/* Filter */
+#fb{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:2px;
+background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(16px);
+padding:4px 6px;border:0.5px solid var(--bd);border-radius:16px;z-index:50}
+.fp{padding:4px 12px;border:none;border-bottom:1px solid transparent;border-radius:12px;
+background:none;color:var(--t2);cursor:pointer;font-family:'Plus Jakarta Sans';font-size:10px;font-weight:300;
+letter-spacing:1px;text-transform:uppercase;transition:all .3s}
+.fp:hover{color:var(--ac)}
+.fp.on{color:var(--ac);border-bottom-color:var(--ac)}
+
+/* Search overlay */
+#sov{position:fixed;inset:0;z-index:300;background:color-mix(in srgb,var(--bg) 75%,transparent);backdrop-filter:blur(24px);
+display:flex;align-items:flex-start;justify-content:center;padding-top:20vh;
+opacity:0;pointer-events:none;transition:all .3s}
+#sov.on{opacity:1;pointer-events:all}
+.sinp{width:400px;max-width:80vw;background:transparent;border:none;border-bottom:0.5px solid var(--bd);
+color:var(--tx);font-family:'Plus Jakarta Sans';font-size:18px;font-weight:300;letter-spacing:2px;
+padding:12px 0;outline:none;text-align:center}
+.sinp::placeholder{color:var(--t3)}
+.sres{width:400px;max-width:80vw;max-height:40vh;overflow-y:auto;margin-top:8px}
+.sr{padding:10px 0;cursor:pointer;border-bottom:0.5px solid var(--bd);transition:all .2s;font-family:'Plus Jakarta Sans';font-weight:300}
+.sr:hover{padding-left:12px;color:var(--ac)}
+.sr-name{font-size:13px;letter-spacing:1px}
+.sr-cat{font-family:'JetBrains Mono';font-size:8px;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase}
+
+/* Detail Panel */
+#dp{position:fixed;top:40px;right:0;width:480px;height:calc(100vh - 40px);
+background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(24px);
+border-left:0.5px solid var(--bd);z-index:250;display:flex;flex-direction:column;
+transform:translateX(100%);transition:transform .4s cubic-bezier(.16,1,.3,1)}
+#dp.on{transform:translateX(0)}
+.dp-x{position:absolute;top:12px;right:12px;background:none;border:0.5px solid var(--bd);
+color:var(--t3);width:24px;height:24px;cursor:pointer;border-radius:3px;display:flex;
+align-items:center;justify-content:center;transition:all .2s;font-size:12px;font-weight:300}
+.dp-x:hover{border-color:var(--ac);color:var(--ac)}
+.dp-head{padding:24px 24px 0;flex-shrink:0}
+.dp-cat{font-family:'JetBrains Mono';font-size:7px;letter-spacing:2.5px;text-transform:uppercase;
+color:var(--t3);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.dp-dot{width:5px;height:5px;border-radius:50%;display:inline-block}
+.dp-title{font-size:18px;font-weight:300;letter-spacing:4px;text-transform:uppercase;color:var(--ac);line-height:1.3}
+.dp-id{font-family:'JetBrains Mono';font-size:8px;color:var(--t3);letter-spacing:1px;margin-top:6px}
+.dp-gh{display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono';font-size:9px;
+color:var(--t2);text-decoration:none;padding:4px 10px;border:0.5px solid var(--bd);border-radius:3px;
+transition:all .2s;margin-top:10px}
+.dp-gh:hover{border-color:var(--ac);color:var(--ac)}
+.tabs{display:flex;border-bottom:0.5px solid var(--bd);flex-shrink:0;padding:0 24px;margin-top:16px}
+.tab{font-family:'JetBrains Mono';font-size:8px;padding:10px 12px;cursor:pointer;color:var(--t3);
+border:none;border-bottom:1px solid transparent;background:none;letter-spacing:1.5px;
+text-transform:uppercase;transition:all .2s;font-weight:300}
+.tab:hover{color:var(--t2)}.tab.on{color:var(--ac);border-bottom-color:var(--ac)}
+.tbody{flex:1;overflow-y:auto;padding:20px 24px}
+.os{margin-bottom:16px}
+.ol{font-family:'JetBrains Mono';font-size:7px;letter-spacing:2px;color:var(--t3);
+text-transform:uppercase;margin-bottom:6px;padding-bottom:4px;border-bottom:0.5px solid var(--bd)}
+.otx{font-size:12px;line-height:1.8;color:var(--tx);font-weight:300}
+.cblk{background:var(--cd);border:0.5px solid var(--bd);border-radius:4px;overflow:hidden;margin:8px 0}
+.cbh{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;border-bottom:0.5px solid var(--bd)}
+.cbf{font-family:'JetBrains Mono';font-size:9px;color:var(--t2);font-weight:300}
+.cbl{font-family:'JetBrains Mono';font-size:7px;color:var(--t3);padding:2px 5px;border:0.5px solid var(--bd);border-radius:2px}
+.cbd{padding:12px;font-family:'JetBrains Mono';font-size:10px;line-height:1.7;overflow-x:auto;color:var(--tx);white-space:pre;font-weight:300}
+.ck{color:var(--ac)}.cf{color:#dbb978}.cs{color:#7a9a6a}.cc{color:var(--t3);font-style:italic}.cn{color:#d4873f}.ct{color:#c47a8a}.cm{color:#7ab4d4}
+.gs{margin-bottom:12px;border:0.5px solid var(--bd);border-radius:4px;overflow:hidden}
+.gs.warn{border-color:rgba(196,88,60,0.3)}
+.gt{font-family:'JetBrains Mono';font-size:9px;font-weight:400;letter-spacing:1.5px;padding:8px 14px;
+border-bottom:0.5px solid var(--bd);color:var(--t2);text-transform:uppercase;background:var(--cd)}
+.gs.warn .gt{color:#c45c3c}
+.gsteps{padding:8px 14px}
+.gstep{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:0.5px solid rgba(196,162,101,.03);
+font-size:11px;line-height:1.6;color:var(--tx);font-weight:300}
+.gstep:last-child{border-bottom:none}
+.gstep code{font-family:'JetBrains Mono';font-size:9px;color:var(--ac);background:var(--ag);padding:1px 5px;border-radius:2px}
+.gsn{font-family:'JetBrains Mono';font-size:9px;font-weight:400;color:var(--ac);min-width:16px;padding-top:1px}
+.gstep.warn .gsn{color:#c45c3c}.gstep.hl .gsn{color:#7a9a6a}
+.gstep.warn{color:rgba(196,88,60,0.8)}
+.gst{flex:1}
+.conn-list{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.conn-tag{font-family:'JetBrains Mono';font-size:9px;color:var(--t2);padding:3px 8px;
+border:0.5px solid var(--bd);border-radius:3px;cursor:pointer;transition:all .2s}
+.conn-tag:hover{border-color:var(--ac);color:var(--ac)}
+
+/* Zoom */
+.zc{position:fixed;bottom:70px;right:16px;display:flex;flex-direction:column;gap:3px;z-index:50}
+.zb{width:26px;height:26px;border:0.5px solid var(--bd);border-radius:3px;
+background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(10px);
+color:var(--t2);cursor:pointer;font-family:'JetBrains Mono';font-size:12px;
+display:flex;align-items:center;justify-content:center;transition:all .2s;font-weight:300}
+.zb:hover{border-color:var(--ac);color:var(--ac)}
+#mm{position:fixed;bottom:60px;left:16px;width:140px;height:90px;
+border:0.5px solid var(--bd);border-radius:3px;
+background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(10px);z-index:50;overflow:hidden}
+
+/* ── DIRECTORY VIEW ─────────────────────────────── */
+#dir-view{position:fixed;top:40px;left:0;right:0;bottom:0;display:none;overflow:hidden;background:var(--bg)}
+#dir-view.on{display:flex}
+
+#dir-nav{width:220px;flex-shrink:0;border-right:0.5px solid var(--bd);overflow-y:auto;
+background:color-mix(in srgb,var(--bg) 97%,var(--sf));display:flex;flex-direction:column}
+.dir-nav-top{padding:20px 20px 12px;border-bottom:0.5px solid var(--bd)}
+.dir-nav-title{font-family:'JetBrains Mono';font-size:7px;letter-spacing:2px;color:var(--t3);
+text-transform:uppercase;margin-bottom:10px}
+.dir-search{width:100%;background:none;border:0.5px solid var(--bd);border-radius:3px;
+color:var(--tx);font-family:'JetBrains Mono';font-size:9px;padding:6px 10px;outline:none;
+letter-spacing:0.5px;transition:border-color .2s}
+.dir-search:focus{border-color:var(--ac)}
+.dir-search::placeholder{color:var(--t3)}
+.dir-nav-cats{flex:1;padding:8px 0}
+.dir-nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;
+transition:all .2s;border-left:2px solid transparent}
+.dir-nav-item:hover{border-left-color:rgba(196,162,101,0.3);background:var(--ag)}
+.dir-nav-item.active{border-left-color:var(--ac);background:var(--ag)}
+.dir-nav-shape{font-size:13px;width:16px;text-align:center;flex-shrink:0;opacity:0.6}
+.dir-nav-label{flex:1;font-size:10px;letter-spacing:0.5px;color:var(--t2)}
+.dir-nav-count{font-family:'JetBrains Mono';font-size:9px;color:var(--t3)}
+.dir-nav-footer{padding:12px 20px;border-top:0.5px solid var(--bd)}
+.dir-nav-total{font-family:'JetBrains Mono';font-size:7px;color:var(--t3);letter-spacing:1px}
+
+#dir-main{flex:1;overflow-y:auto;overflow-x:hidden}
+.dir-sec-hdr{display:flex;align-items:center;gap:12px;padding:14px 28px 12px;
+position:sticky;top:0;z-index:10;
+background:color-mix(in srgb,var(--bg) 96%,transparent);
+backdrop-filter:blur(16px);border-bottom:0.5px solid var(--bd)}
+.dir-sec-bar{width:3px;border-radius:2px;flex-shrink:0;align-self:stretch}
+.dir-sec-name{font-family:'JetBrains Mono';font-size:7px;letter-spacing:3px;
+color:var(--t2);text-transform:uppercase;flex:1}
+.dir-sec-count{font-family:'JetBrains Mono';font-size:7px;color:var(--t3);letter-spacing:1px}
+
+.dir-node{display:grid;grid-template-columns:260px 1fr 180px;gap:20px;align-items:start;
+padding:12px 28px;border-bottom:0.5px solid var(--bd);cursor:pointer;transition:background .15s}
+.dir-node:hover{background:color-mix(in srgb,var(--bg) 90%,var(--ac))}
+.dir-node.hidden{display:none}
+.dir-node-l{display:flex;align-items:flex-start;gap:12px;min-width:0}
+.dir-shape-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0;margin-top:1px;opacity:0.55}
+.dir-node-meta{min-width:0}
+.dir-node-name{font-size:11px;letter-spacing:1.5px;font-weight:300;margin-bottom:2px;
+text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dir-node-id{font-family:'JetBrains Mono';font-size:8px;color:var(--t3);letter-spacing:0.5px}
+.dir-node-desc{font-size:11px;line-height:1.7;color:var(--t2);
+font-weight:300;padding-top:1px}
+.dir-node-r{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.dir-conn-count{font-family:'JetBrains Mono';font-size:8px;color:var(--t3);letter-spacing:1px}
+.dir-conn-tags{display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end}
+.dct{font-family:'JetBrains Mono';font-size:8px;color:var(--t2);padding:2px 6px;
+border:0.5px solid var(--bd);border-radius:2px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.dct:hover{border-color:var(--ac);color:var(--ac)}
+.dct-more{font-family:'JetBrains Mono';font-size:8px;color:var(--t3);padding:2px 4px}
+.dir-empty{padding:60px 28px;font-family:'JetBrains Mono';font-size:9px;color:var(--t3);
+letter-spacing:1px;text-align:center}
+
+
+/* ── Intelligent Search ─────────────────────────────── */
+#sov{padding-top:14vh}
+.s-wrap{position:relative;display:flex;align-items:center;width:520px;max-width:88vw;
+  border-bottom:0.5px solid var(--bd);gap:10px}
+.s-icon{font-size:22px;color:var(--t3);flex-shrink:0;margin-bottom:2px}
+.sinp{flex:1;width:auto;max-width:none;border:none;border-bottom:none;
+  padding:12px 0;font-size:16px}
+.s-mode{font-family:'JetBrains Mono';font-size:7px;letter-spacing:1.5px;
+  padding:2px 7px;border-radius:2px;border:0.5px solid var(--t3);color:var(--t3);
+  flex-shrink:0;transition:all .3s;white-space:nowrap}
+.s-mode.qa{border-color:var(--ac);color:var(--ac)}
+.sres{width:520px;max-width:88vw;max-height:52vh;overflow-y:auto;margin-top:10px}
+
+/* Q&A Answer panel */
+.qa-answer{padding:16px 18px;background:rgba(196,162,101,0.04);
+  border:0.5px solid rgba(196,162,101,0.2);border-radius:4px;margin-bottom:14px}
+.qa-alabel{font-family:'JetBrains Mono';font-size:7px;letter-spacing:2px;
+  color:var(--ac);text-transform:uppercase;margin-bottom:8px}
+.qa-atext{font-size:11px;line-height:1.8;color:var(--tx);font-weight:300}
+.qa-atext b{color:var(--ac);font-weight:400}
+
+/* Node section header */
+.qa-nlabel{font-family:'JetBrains Mono';font-size:7px;letter-spacing:2px;
+  color:var(--t3);text-transform:uppercase;margin:10px 0 6px;padding-bottom:5px;
+  border-bottom:0.5px solid var(--bd)}
+
+/* Result items */
+.sr{padding:10px 12px;cursor:pointer;border-radius:3px;
+  transition:all .2s;border:0.5px solid transparent;margin-bottom:3px}
+.sr:hover{background:var(--ag);border-color:var(--bd);padding-left:16px}
+.sr-top{display:flex;align-items:center;gap:8px}
+.sr-name{font-size:12px;letter-spacing:0.5px;flex:1}
+.sr-cat{font-family:'JetBrains Mono';font-size:7px;color:var(--t3);
+  letter-spacing:1.5px;text-transform:uppercase;padding:2px 6px;
+  border:0.5px solid var(--bd);border-radius:2px}
+.sr-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sr-excerpt{font-size:9px;color:var(--t2);margin-top:4px;line-height:1.5;
+  font-family:'JetBrains Mono';
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* Connection badge */
+.sr-conn{display:inline-flex;align-items:center;gap:3px;margin-top:5px;
+  font-family:'JetBrains Mono';font-size:7px;color:var(--t3);letter-spacing:0.5px}
+.sr-conn-dot{width:4px;height:4px;border-radius:50%;background:var(--t3)}
+
+/* ── AI Search extras ─────────────────────────────── */
+@keyframes kgdots{0%,80%,100%{opacity:0}40%{opacity:1}}
+.kg-dots span{animation:kgdots 1.2s infinite;display:inline-block}
+.kg-dots span:nth-child(2){animation-delay:.2s}
+.kg-dots span:nth-child(3){animation-delay:.4s}
+.kg-key-wrap{display:flex;gap:8px;align-items:center;margin-top:10px}
+.kg-key-inp{flex:1;background:transparent;border:0.5px solid var(--bd);color:var(--tx);
+  padding:8px 10px;font-family:'JetBrains Mono';font-size:10px;border-radius:2px;outline:none}
+.kg-key-inp:focus{border-color:var(--ac)}
+.kg-key-btn{background:var(--ac);color:#111;border:none;padding:8px 14px;
+  font-family:'JetBrains Mono';font-size:8px;letter-spacing:1px;cursor:pointer;
+  border-radius:2px;white-space:nowrap}
+.kg-node-ref{cursor:pointer;border-bottom:0.5px dotted currentColor;
+  transition:opacity .2s}
+.kg-node-ref:hover{opacity:.7}
+.kg-key-status{font-family:'JetBrains Mono';font-size:8px;letter-spacing:1px;
+  padding:2px 8px;border-radius:2px;cursor:pointer}
+.kg-key-status.set{background:rgba(196,162,101,0.12);color:var(--ac);border:0.5px solid rgba(196,162,101,0.3)}
+.kg-key-status.unset{background:var(--ag);color:var(--t3);border:0.5px solid var(--bd)}
+</style>
+</head>
+<body>
+
+<div id="hud">
+<div class="hud-l">
+  <span class="logo">Barsys AI</span>
+  <div class="hud-tabs">
+    <button class="htab active" id="tab-graph" onclick="switchView('graph')">GRAPH</button>
+    <button class="htab" id="tab-dir" onclick="switchView('directory')">DIRECTORY</button>
+  </div>
+  <span class="stats" id="st">66 NODES / 0 EDGES</span>
+</div>
+<div class="hud-r">
+<button class="hbtn" id="btn-search" onclick="toggleSearch()">SEARCH</button>
+<button class="hbtn" onclick="toggleTheme()">THEME</button>
+<button class="hbtn" id="btn-reset" onclick="handleReset()">RESET</button>
+</div></div>
+
+<canvas id="cv"></canvas>
+<div id="tip"><div class="tip-cat" id="tipC"></div><div id="tipT"></div><div class="tip-conn" id="tipN"></div></div>
+<div id="fb"></div>
+
+<!-- Directory View -->
+<div id="dir-view">
+  <div id="dir-nav">
+    <div class="dir-nav-top">
+      <div class="dir-nav-title">Filter nodes</div>
+      <input class="dir-search" id="dir-search-input" placeholder="search..." oninput="filterDirectory(this.value)">
+    </div>
+    <div class="dir-nav-cats" id="dir-nav-cats"></div>
+    <div class="dir-nav-footer">
+      <div class="dir-nav-total" id="dir-nav-total"></div>
+    </div>
+  </div>
+  <div id="dir-main"></div>
+</div>
+
+<div id="sov" onclick="if(event.target===this)toggleSearch()">
+<div class="s-wrap">
+  <div class="s-icon">⌕</div>
+  <input class="sinp" id="si" placeholder="Ask anything — &ldquo;how are mixlists populated?&rdquo; or search a node..." oninput="doSearch(this.value)" autocomplete="off" spellcheck="false">
+  <div class="s-mode" id="s-mode-badge"></div>
+  <div id="kg-key-badge" class="kg-key-status unset" onclick="showKeyPrompt()" title="Click to set Anthropic API key">NO KEY</div>
+</div>
+<div class="sres" id="srl"></div>
+</div>
+
+<div id="dp">
+<button class="dp-x" onclick="closePanel()">x</button>
+<div class="dp-head" id="dph"></div>
+<div class="tabs" id="dtabs"></div>
+<div class="tbody" id="dtb"></div>
+</div>
+
+<div class="zc" id="zoom-ctrl">
+<button class="zb" onclick="zoomTo(zoom*1.3)">+</button>
+<button class="zb" onclick="zoomTo(zoom/1.3)">-</button>
+</div>
+<div id="mm"><canvas id="mmc"></canvas></div>
+
+<script>
+const N=[
+
+// ── iOS App Features ─────────────────────────────
+{id:'ios-app',l:'iOS App',cat:'ios',sz:8,rel:1,
+ desc:'Barsys AI production iOS app. UIKit + MVVM. Targets iPhone only. Navigation via UIStoryboard + TabBarController + UINavigationController with VC extension helpers. No Alamofire — raw URLSession.shared.dataTask(). Staging base URLs (current build): baseUrl=https://ci.api-ng.barsys.com/api/, baseUrlForBarBot=https://ci.barbot.barsys.com/, baseUrlForRecipes=Defteros Cloud Run staging. Ory: https://ci.iam.auth.barsys.com/self-service/. BarBot SSE: ci.bond-cof.barsys.com/api/. Braze SDK integrated (AppDelegate, API key d5beb9b6-9499-4213-b4dd-f36322e1d444, endpoint sdk.iad-07.braze.com). SSL-pins api-ng.barsys.com + ci.bond-mvp1.barsys.com via SSLPinningManager.swift.',
+ code:`<span class="cc">// ApiConstants.swift — production base URLs</span>
+<span class="ck">let</span> baseUrl = <span class="cs">"https://api-ng.barsys.com/api/"</span>
+<span class="ck">let</span> baseUrlForBarBot = <span class="cs">"https://ci.bond-mvp1.barsys.com/api/"</span>
+<span class="ck">let</span> baseUrlWebSocket = <span class="cs">"wss://bouncer.barsys.com/api/v1/ws/user/"</span>
+<span class="ck">let</span> baseUrlOry = <span class="cs">"https://iam.auth.barsys.com/self-service/"</span>
+
+<span class="cc">// Networking: raw URLSession (no Alamofire)</span>
+URLSession.shared.dataTask(with: request) { data, response, error in
+  <span class="cc">// completion handler pattern throughout</span>
+}
+
+<span class="cc">// AppDelegate: Braze init</span>
+<span class="ck">let</span> config = Braze.Configuration(
+  apiKey: <span class="cs">"d5beb9b6-9499-4213-b4dd-f36322e1d444"</span>,
+  endpoint: <span class="cs">"sdk.iad-07.braze.com"</span>)`,
+ conn:['auth-flow','recipe-browse','mixlists','my-bar','barbot','crafting','scanner','defteros','ory','bond'],
+ guide:`<div class="gs"><div class="gt">Add a new tab</div><div class="gsteps"><div class="gstep hl"><span class="gsn">1</span><span class="gst">Create VC + Coordinator pair</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Register in <code>TabBarCoordinator.setupTabs()</code></span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">Add tab icon to Assets.xcassets</span></div></div></div>`},
+
+{id:'auth-flow',l:'Auth Flow',cat:'ios',sz:6,rel:1,
+ desc:'Ory Kratos OTP auth flow. LoginSignUpOryApiService.swift drives phone OTP + Apple/Google SSO via Ory self-service flows. Auth tokens stored in KEYCHAIN via KeychainHelper.swift — 11 keys: session_token, accessToken, userId, user_phone, user_email, user_dob, name, countryName, deviceId, sessionId, user_Profile_image. On launch, AppCoordinator checks Keychain session_token to decide auth vs main flow. Network 401/expired-session triggers triggerSessionExpirationLogout() which clears all 11 Keychain keys.',
+ code:`<span class="cc">// KeychainHelper.swift — 11 Keychain keys</span>
+<span class="ck">class</span> KeychainHelper {
+  <span class="ck">static func</span> save(_ key: String, _ value: String)
+  <span class="ck">static func</span> get(_ key: String) -> String?
+  <span class="ck">static func</span> delete(_ key: String)
+}
+<span class="cc">// Keys: session_token, accessToken, userId,</span>
+<span class="cc">// user_phone, user_email, user_dob, name,</span>
+<span class="cc">// countryName, deviceId, sessionId, user_Profile_image</span>
+
+<span class="cc">// Launch check (AppCoordinator)</span>
+<span class="ck">if</span> KeychainHelper.get(<span class="cs">"session_token"</span>) != nil {
+  showMainFlow()
+} <span class="ck">else</span> { showLogin() }`,
+ conn:['ios-app','ory','defteros','sqlite-cache'],
+ guide:`<div class="gs"><div class="gt">Handle session expiry</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">NetworkingUtility checks for 401 or <code>"expired session token"</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Do NOT retry — call <code>triggerSessionExpirationLogout()</code> immediately</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Clear all Keychain keys, pop to LoginVC</span></div></div></div>`},
+
+{id:'recipe-browse',l:'Recipe Browse',cat:'ios',sz:6,rel:1,
+ desc:'Primary content surface. SQLite-first: all display reads from local recipes table, never directly from API. Delta sync via GET /cache/recipes?timestamp= — only records updated after the last stored timestamp are returned. Screen hierarchy: ExploreRecipes → RecipePage → CraftingVC → DrinkCompleteVC. Favourites + My Drinks under separate tabs. barsys360Compatible flag filters 360-craftable recipes.',
+ code:`<span class="cc">// Delta sync — SQLite first pattern</span>
+<span class="ck">let</span> ts = UserDefaults.getUpdatedDataTimeStamp()
+<span class="cm">GET</span> /cache/recipes?timestamp={\(ts)}&barsys360=false
+
+<span class="cc">// Upsert into SQLite</span>
+DBManager.insertToDatabaseAndFetchCount(recipes)
+AppStateManager.shared.updateRecipeCache()
+UserDefaults.saveNewTimestamp(Date())
+
+<span class="cc">// Availability filter (availableOnly=true)</span>
+<span class="cc">// SQL HAVING: all non-garnish ingredients</span>
+<span class="cc">// must match a station category pair</span>`,
+ conn:['ios-app','sqlite-cache','defteros','crafting','my-bar'],
+ guide:`<div class="gs"><div class="gt">Force full recipe resync</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Clear UserDefaults timestamp key</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>GET /cache/recipes</code> with no timestamp param</span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">All records returned — SQLite fully replaced</span></div></div></div>`},
+
+{id:'mixlists',l:'MixLists',cat:'ios',sz:6,rel:.95,
+ desc:'Curated cocktail collections. iOS is READ-ONLY — MixlistViewController displays system mixlists (user_id IS NULL) fetched via DBManager.shared.fetchMixlists(). Delta-sync: GET /cache/mixlists?timestamp=. Backend supports POST /my/mixlists but iOS has no creation UI. barsys360Compatible auto-set to true if recipe count ≤ 6. Deep link scheme declared (barsysapp://) but routing NOT implemented. Visibility rule: user_id IS NULL = system/shared, user_id != NULL = user-private.',
+ code:`<span class="cc">// Create mixlist</span>
+<span class="cm">POST</span> /my/mixlists {
+  <span class="cs">"name"</span>: <span class="cs">"Friday Night"</span>,
+  <span class="cs">"cocktails"</span>: [<span class="cs">"uuid1"</span>, <span class="cs">"uuid2"</span>],
+  <span class="cs">"barsys_360_compatible"</span>: <span class="ck">true</span>
+}
+
+<span class="cc">// Delta sync (public + user's)</span>
+<span class="cm">GET</span> /cache/mixlists?timestamp={ts}
+<span class="cc">// Response includes embedded recipes</span>
+<span class="cc">// + is_favorite bool per mixlist</span>`,
+ conn:['ios-app','sqlite-cache','defteros'],
+ guide:`<div class="gs"><div class="gt">Add recipe to mixlist</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">PATCH /my/mixlists/:id with full <code>cocktails[]</code> array</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">No granular add/remove — always send full array</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Async MySQL sync fires on backend automatically</span></div></div></div>`},
+
+{id:'my-bar',l:'MyBar / Stations',cat:'ios',sz:6,rel:1,
+ desc:'No standalone MyBar list screen — inventory IS the station slots (A–F). Primary screen: StationsMenuViewController in Control Center tab. Three ingredient input paths: (1) Camera/AI scan → Bond image API → confirm → PUT /stations/:s, (2) BLE notification (getStationsDataNotif) → direct station update, (3) Bulk setup from mixlist or device pairing → PATCH /devices. Global state: globalStationArray: [StationCleaningFlow] drives recipe availability, craft validation, perishable checks.',
+ code:`<span class="cc">// Station slot structure (A–F)</span>
+<span class="ck">struct</span> StationSlot {
+  <span class="ck">var</span> metric: String       <span class="cc">// "ML"</span>
+  <span class="ck">var</span> quantity: Float
+  <span class="ck">var</span> ingredientName: String
+  <span class="ck">var</span> isPerishable: Bool
+  <span class="ck">var</span> category: SlotCategory
+}
+
+<span class="cc">// Update via camera scan</span>
+<span class="cm">PUT</span> /devices/device-number/{n}/stations/{s}`,
+ conn:['ios-app','defteros','ble-hardware','crafting','recipe-browse'],
+ guide:`<div class="gs"><div class="gt">Ingredient not matching recipe</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Check <code>globalStationArray</code> category.primary + secondary match</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Backend availability filter uses same category pair logic</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Spelling must match exactly — "Vodka" ≠ "vodka"</span></div></div></div>`},
+
+{id:'barbot',l:'BarBot AI',cat:'ios',sz:6,rel:.95,
+ desc:'Production uses blocking URLSession.dataTask POST — NOT SSE. SSE only on feature/barbot-sse-migration branch. Base URL: ci.bond-mvp1.barsys.com. Session: new = Date().timeIntervalSince1970_deviceId, resume = stored historySessionId. Action card types: chat (send follow-up), craft (BLE pour), device (redirect flows), shop (WebView). BarBot fields lost on recipe save: difficulty, preparationTime, totalTime, servingSize, garnish.',
+ code:`<span class="cc">// Chat request body</span>
+{
+  <span class="cs">"user_id"</span>: <span class="cm">userId</span>,
+  <span class="cs">"session_id"</span>: <span class="cm">"ts_deviceId"</span>,
+  <span class="cs">"input"</span>: {
+    <span class="cs">"text"</span>: <span class="cs">"What mood am I in?"</span>,
+    <span class="cs">"image"</span>: { <span class="cs">"url"</span>: <span class="cs">"data:image/jpeg;base64,..."</span> }
+  },
+  <span class="cs">"metadata"</span>: {
+    <span class="cs">"device"</span>: {
+      <span class="cs">"device_number"</span>: <span class="cm">bleName</span>,
+      <span class="cs">"connection_status"</span>: <span class="cs">"connected"</span>
+    }
+  }
+}`,
+ conn:['ios-app','bond','crafting','defteros'],
+ guide:`<div class="gs"><div class="gt">Save BarBot recipe</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">POST /my/recipes with RecipeElement fields</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Fields lost: difficulty, prepTime, totalTime, servingSize, garnish — not in iOS Recipe struct</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Recipe saves as user recipe with <code>origin: "barbot"</code></span></div></div></div>`},
+
+{id:'crafting',l:'Crafting Flow',cat:'ios',sz:6,rel:1,
+ desc:'CraftingViewController state machine: idle → waitingForGlass → dispensing → awaitingGlassRemoval → completed. BarBotCraftingViewController adds cancel path: cancelling → cancelledWaitingForGlass → cancelAcknowledged → dismiss. BLE command formats: Coaster/Shaker = "200,q1,...,q14" (14 slots), Barsys 360 = "200,s1,q1,...,sN,qN,0,...,0" (station-qty pairs). Post-craft: PATCH /devices to reduce station quantities from BLE quantityFeedback (opcode 222 response). Also records POST /analytics drink_mixed event.',
+ code:`<span class="cc">// Barsys 360 pour command (opcode 200)</span>
+<span class="cc">// Station-qty pairs, zero-padded to 14 values</span>
+<span class="cs">"200,1,30,3,45,0,0,0,0,0,0,0,0,0,0"</span>
+
+<span class="cc">// State: DISPENSING</span>
+<span class="cc">// receives: 218,N,405 (station N started)</span>
+<span class="cc">// receives: 218,N,401 (station N done)</span>
+<span class="cc">// receives: 231,29.8  (actual ml poured)</span>
+
+<span class="cc">// Post-craft quantity reconciliation</span>
+<span class="cm">PATCH</span> /devices/device-number/{n}`,
+ conn:['ios-app','ble-hardware','defteros','my-bar','barbot'],
+ guide:`<div class="gs"><div class="gt">Handle glass-lift during pour</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Receive BLE <code>219,405</code> (glass lifted, pump stopped)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Show "Replace glass" UI — device polls <code>219,402</code></span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">Receive <code>219,401</code> (replaced) → resume dispensing</span></div></div></div>`},
+
+{id:'scanner',l:'Scanner / Vision',cat:'ios',sz:5,rel:.85,
+ desc:'Camera-based ingredient detection via Bond image API (ci.bond.barsys.com/api/image/multipart — different subdomain from BarBot). DeviceDetectedPopUpVc confirms AI detections before writing to stations. scan-merge endpoint for bulk bar population from scanner results. Shopping list and discovery endpoints use bar contents to generate AI recommendations.',
+ code:`<span class="cc">// Image multipart upload to Bond</span>
+<span class="cm">POST</span> ci.bond.barsys.com/api/image/multipart
+<span class="cc">// AI returns detected ingredients</span>
+<span class="cc">// → DeviceDetectedPopUpVc confirms</span>
+<span class="cc">// → PUT /devices/:n/stations/:s OR</span>
+<span class="cc">// → POST /my/bar/scan-merge (bulk)</span>
+
+<span class="cc">// Shopping list</span>
+<span class="cm">GET</span> /my/shopping-list   <span class="cc">→ AI suggestions</span>
+<span class="cm">GET</span> /my/discovery       <span class="cc">→ recommendations</span>`,
+ conn:['ios-app','bond','defteros','my-bar'],
+ guide:`<div class="gs"><div class="gt">Bond vs Defteros image endpoints</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">Scanner uses <code>ci.bond.barsys.com</code> (no hyphen-mvp1)</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">BarBot uses <code>ci.bond-mvp1.barsys.com</code> — different subdomain</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Both are Bond services but different deployments</span></div></div></div>`},
+
+// ── Backend ────────────────────────────────────────
+{id:'defteros',l:'Defteros',cat:'backend',sz:8,rel:1,
+ desc:'Primary Barsys backend service. Go 1.23 + Echo v4. Deployed on GCP Cloud Run (staging: defteros-service-staging-47447659942.us-central1.run.app). Port :8080. 55 PostgreSQL migrations. Rate limits: auth=5/min, write=30/min, read=100/min. Auth: validates Ory session tokens via GET {ORY_BASE_URI}/sessions/whoami + local ory_token_cache table for performance. RS256 JWT issued post token-exchange for newer clients. ISADMIN env flag enables admin-only routes.',
+ code:`<span class="cc">// Go + Echo v4 — main route registration</span>
+<span class="ck">e</span> := echo.New()
+<span class="cm">v1</span> := e.Group(<span class="cs">"/api/v1"</span>)
+
+<span class="cc">// Public</span>
+v1.GET(<span class="cs">"/ping"</span>, healthHandler.Ping)
+v1.POST(<span class="cs">"/auth/send-code"</span>, authHandler.SendCode)
+v1.POST(<span class="cs">"/auth/verify-code"</span>, authHandler.VerifyCode)
+
+<span class="cc">// JWT required</span>
+my := v1.Group(<span class="cs">"/my"</span>, JWTMiddleware)
+my.GET(<span class="cs">"/recipes"</span>, cocktailHandler.ListMy)
+my.GET(<span class="cs">"/devices"</span>, deviceHandler.ListMy)`,
+ conn:['ios-app','recipes-api','mixlists-api','mybar-api','devices-api','analytics-api','profile-api','party-api','social-api','postgres','mysql','pubsub','ory','gcs'],
+ guide:`<div class="gs"><div class="gt">Add new endpoint</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Create handler in <code>internal/handlers/</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Register route in <code>internal/application/app.go</code></span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">Add middleware: <code>JWTMiddleware</code>, <code>OryMiddleware</code>, or none</span></div></div></div>`},
+
+{id:'recipes-api',l:'Recipes API',cat:'backend',sz:6,rel:1,
+ desc:'Cocktail recipe CRUD under /api/v1/ and /api/v1/my/recipes. Public: GET /recipes, GET /recipes/search, GET /recipes/:id. Auth (JWT): same plus POST /my/recipes, favorites. Admin-only: POST /recipes (create), PUT /recipes/:id. Ratings at POST /my/recipes/:id/ratings. Delta-sync at GET /cache/recipes?timestamp=. Dual-read: PostgreSQL (canonical) + MySQL (legacy fallback). Full-text search via tsvector. No /recipes/available or /ready-to-pour backend route — availability is computed iOS-side.',
+ code:`<span class="cc">// cocktail_handler.go + recipe_handler.go</span>
+GET  /api/v1/recipes              <span class="cc">// public list</span>
+GET  /api/v1/recipes/search       <span class="cc">// full-text search</span>
+GET  /api/v1/recipes/trending     <span class="cc">// trending recipes</span>
+GET  /api/v1/recipes/recommended  <span class="cc">// personalized</span>
+GET  /api/v1/recipes/similar/:id  <span class="cc">// similar cocktails</span>
+GET  /api/v1/recipes/:id
+GET  /api/v1/my/recipes           <span class="cc">// JWT-auth</span>
+POST /api/v1/my/recipes/:id/ratings
+POST /api/v1/my/recipes/:id/favorites
+GET  /api/v1/cache/recipes?timestamp=&lt;unix&gt;
+
+<span class="cc">// Admin only (ISADMIN=true)</span>
+POST /api/v1/recipes              <span class="cc">// create</span>
+PUT  /api/v1/recipes/:id          <span class="cc">// update</span>`,
+ conn:['defteros','postgres','mysql','pubsub','gcs','sqlite-cache'],
+ guide:`<div class="gs"><div class="gt">Pub/Sub flow for AI recipes</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">POST /recipes/flat with <code>flat_recipe_content</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Backend publishes to <code>FULL_RECIPE</code> topic</span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">Downstream consumer enriches → updates <code>is_flat=false</code></span></div></div></div>`},
+
+{id:'mixlists-api',l:'MixLists API',cat:'backend',sz:5,rel:.95,
+ desc:'System mixlists (user_id IS NULL) and user mixlists. GET /cache/mixlists?timestamp= returns all with embedded recipes and is_favorite bool. PATCH replaces full cocktails[] array — no granular add/remove. Soft-delete via is_deleted flag. MySQL async sync on create/update/delete. MixlistItems ordered by position integer.',
+ code:`<span class="cc">// Cache endpoint returns embedded recipes</span>
+{
+  <span class="cs">"mixlists"</span>: [{
+    <span class="cs">"id"</span>: <span class="cs">"uuid"</span>,
+    <span class="cs">"name"</span>: <span class="cs">"Friday Nights"</span>,
+    <span class="cs">"is_favorite"</span>: <span class="ck">true</span>,
+    <span class="cs">"cocktails"</span>: [{ <span class="cc">/* full recipe */</span> }],
+    <span class="cs">"barsys_360_compatible"</span>: <span class="ck">true</span>
+  }]
+}`,
+ conn:['defteros','postgres','mysql'],
+ guide:`<div class="gs"><div class="gt">Reorder recipes in mixlist</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">No position update endpoint — PATCH with full sorted <code>cocktails[]</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Position is set by array order on write</span></div></div></div>`},
+
+{id:'mybar-api',l:'MyBar API',cat:'backend',sz:5,rel:.95,
+ desc:'Two parallel inventory systems. V4.1 (my_bar_items → products → categories) and legacy flat bar table. GET /my/bar returns legacy flat items (base/mixer split). V4.1 items exposed via /ingredients/ endpoints and used for availableOnly recipe filtering. POST /my/bar batch-adds with partial success (207). scan-merge merges scanner detections. Shopping list and discovery endpoints are AI-powered recommendations.',
+ code:`<span class="cc">// V4.1 availability filter (recipe GET)</span>
+<span class="cc">// Checks BOTH systems simultaneously:</span>
+<span class="cm">SELECT</span> r.* <span class="cm">FROM</span> cocktail_recipes r
+<span class="cm">WHERE</span> <span class="cm">NOT EXISTS</span> (
+  <span class="cm">SELECT</span> 1 <span class="cm">FROM</span> ingredients i
+  <span class="cm">WHERE</span> i.recipe_id = r.id
+    <span class="cm">AND</span> i.optional = <span class="ck">false</span>
+    <span class="cm">AND</span> <span class="cm">NOT EXISTS</span> (
+      <span class="cc">-- check device_stations OR my_bar_items</span>
+      <span class="cm">SELECT</span> 1 <span class="cm">FROM</span> my_bar_items mb
+      <span class="cm">JOIN</span> products p <span class="cm">ON</span> mb.product_id = p.id
+      <span class="cm">JOIN</span> categories c <span class="cm">ON</span> p.category_id = c.id
+      <span class="cm">WHERE</span> c.name = i.category_primary
+    )
+)`,
+ conn:['defteros','postgres','mysql'],
+ guide:`<div class="gs"><div class="gt">Tech debt: dual bar systems</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">V4.1 (my_bar_items) and legacy (bar table) coexist</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Scanner/batch-add still writes to legacy bar table</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">availableOnly filter reads BOTH — bridging logic in SQL</span></div></div></div>`},
+
+{id:'devices-api',l:'Devices API',cat:'backend',sz:5,rel:1,
+ desc:'Device registration, station config, and crafting sessions. Station update (PUT/PATCH) triggers StationConfig Pub/Sub. Device type inferred from BLE name prefix: BARSYS_S* = shaker-pro, BARSYS_360* / BARSYS360B* = barsys-360, BARSYS_CST2* / CH2* = coaster. V4.1 StationSlotHandler links products to stations. CraftingSessionHandler tracks craft lifecycle server-side. Firmware check endpoint for OTA updates.',
+ code:`<span class="cc">// Station update → Pub/Sub</span>
+<span class="cm">PUT</span> /devices/device-number/{n}/stations/{s}
+<span class="cc">// Payload published to STATION_CONFIG:</span>
+{
+  <span class="cs">"phone"</span>: <span class="cs">"+1234567890"</span>,
+  <span class="cs">"ory_id"</span>: <span class="cs">"uuid"</span>,
+  <span class="cs">"device"</span>: {  <span class="cc">/* full Device with all A-F slots */</span>  }
+}
+<span class="cc">// Downstream consumer pushes to hardware</span>`,
+ conn:['defteros','postgres','pubsub','ble-hardware'],
+ guide:`<div class="gs"><div class="gt">Station config not reaching hardware</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Verify PUT /stations returns 200</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Check STATION_CONFIG Pub/Sub topic in GCP console</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Quantity post-pour is best-effort — crash = stale backend state</span></div></div></div>`},
+
+{id:'analytics-api',l:'Analytics API',cat:'backend',sz:4,rel:.85,
+ desc:'POST /analytics accepts MySQL token OR Ory JWT (backward compat). Stores to analytics_events table with full device/user context. Key hardware events: device_connected (firmware_version, signal_strength), drink_mixed (recipe_id, ingredients[], result, duration, volume_ml), recipe_created. PII fields stored: user_pii_email/phone/firstname/lastname. GDPR note: PII in analytics_events warrants attention.',
+ code:`<span class="cc">// Analytics event structure</span>
+{
+  <span class="cs">"event"</span>: <span class="cs">"drink_mixed"</span>,
+  <span class="cs">"schema_version"</span>: <span class="cs">"1.0"</span>,
+  <span class="cs">"session_id"</span>: <span class="cs">"sess_abc"</span>,
+  <span class="cs">"device_id"</span>: <span class="cs">"BARSYS360_001"</span>,
+  <span class="cs">"device_type"</span>: <span class="cs">"barsys-360"</span>,
+  <span class="cs">"properties"</span>: {
+    <span class="cs">"recipe_id"</span>: <span class="cs">"uuid"</span>,
+    <span class="cs">"result"</span>: <span class="cs">"success"</span>,
+    <span class="cs">"volume_ml"</span>: <span class="cn">165</span>
+  }
+}`,
+ conn:['defteros','postgres','mysql'],
+ guide:`<div class="gs"><div class="gt">Auth mismatch bug</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">iOS sends Ory JWT but some paths still validate against MySQL token</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Backend accepts BOTH — dual validation middleware</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Verify analytics reach DB via <code>SELECT * FROM analytics_events ORDER BY created_at DESC</code></span></div></div></div>`},
+
+{id:'profile-api',l:'Profile API',cat:'backend',sz:4,rel:.9,
+ desc:'User profile CRUD. PATCH /my/profile accepts base64 image → GCS upload async. DELETE /my/profile deletes Postgres profile + Ory identity via admin API → triggers RemoveUser Pub/Sub. GET/PATCH /my/preferences stores user prefs. Profile stats, taste calibration (PUT /my/taste-profile), intelligence timeline for gamification. No push token endpoint in tritos branch.',
+ code:`<span class="cc">// Profile delete cascade</span>
+<span class="cm">DELETE</span> /my/profile
+<span class="cc">// 1. Soft-delete user profile in PG</span>
+<span class="cc">// 2. DELETE identity via Ory admin API</span>
+<span class="cc">// 3. Publish RemoveUser → Pub/Sub</span>
+<span class="cc">// 4. Returns 200 (downstream is async)</span>
+
+<span class="cc">// Taste calibration</span>
+<span class="cm">PUT</span> /my/taste-profile {
+  <span class="cs">"taste_axes"</span>: [{<span class="cs">"sweet"</span>: <span class="cn">0.8</span>}],
+  <span class="cs">"favorite_spirits"</span>: [<span class="cs">"bourbon"</span>]
+}`,
+ conn:['defteros','postgres','pubsub','gcs','ory'],
+ guide:`<div class="gs"><div class="gt">Update profile picture</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">PATCH /my/profile with <code>image: "data:image/jpeg;base64,..."</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Backend uploads to GCS async — returns immediately</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Poll /my/profile to confirm avatar_url updated</span></div></div></div>`},
+
+{id:'party-api',l:'Party Mode',cat:'backend',sz:5,rel:.7,
+ desc:'Backend complete — iOS not yet implemented. Host creates session (6-char invite_code). Guests join via /party/:invite_code/join → receive HS256 guest JWT. WebSocket for real-time queue updates. Shake challenges with scoring. Party badges: shake_champion, party_host, social_shaker, century_shaker. 7 database tables: party_sessions, party_guests, drink_requests, shake_challenges, challenge_scores, party_badges, user_party_stats.',
+ code:`<span class="cc">// Party guest flow</span>
+<span class="cm">POST</span> /party/sessions/{invite_code}/join
+{ <span class="cs">"nickname"</span>: <span class="cs">"Alex"</span> }
+<span class="cc">// → HS256 guest JWT (PARTY_JWT_SECRET)</span>
+<span class="cc">// → valid for session duration only</span>
+
+<span class="cc">// Real-time queue</span>
+<span class="cm">GET</span> /party/sessions/{id}/ws
+<span class="cc">// WebSocket — host sees drink queue</span>
+<span class="cc">// Guest submits: POST /sessions/{id}/requests</span>`,
+ conn:['defteros','postgres'],
+ guide:`<div class="gs"><div class="gt">Party Mode status</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">Backend fully built — iOS has zero Party Mode screens</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">WebSocket at <code>/party/sessions/:id/ws</code> ready for iOS to consume</span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">Invite code is 6-char alphanumeric, unique per session</span></div></div></div>`},
+
+{id:'social-api',l:'Social & Intelligence',cat:'backend',sz:4,rel:.75,
+ desc:'Follow/unfollow creators, activity feed, achievements leaderboard. Intelligence system tracks user skill level with timeline. Streaks for scanner usage. Achievements with claim flow. Pour cards for sharing crafted drinks. Home cards endpoint drives iOS home screen personalization. Chat history and feedback via Defteros proxy to Bond service.',
+ code:`<span class="cc">// Endpoints not yet wired in iOS</span>
+<span class="cm">GET</span>  /users/{id}/profile   <span class="cc">→ creator profile</span>
+<span class="cm">POST</span> /users/{id}/follow    <span class="cc">→ follow creator</span>
+<span class="cm">GET</span>  /feed                 <span class="cc">→ activity feed</span>
+<span class="cm">GET</span>  /my/intelligence      <span class="cc">→ skill level</span>
+<span class="cm">GET</span>  /my/streaks           <span class="cc">→ scan streak</span>
+<span class="cm">GET</span>  /my/achievements      <span class="cc">→ badges</span>
+<span class="cm">GET</span>  /home-cards           <span class="cc">→ personalized cards</span>`,
+ conn:['defteros','postgres'],
+ guide:`<div class="gs"><div class="gt">Chat proxy architecture</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">ANY /api/v1/chat → transparent proxy to BOND_BASE_URI</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">iOS can call Defteros /chat OR Bond directly — both work</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">SSL pinning only covers Bond direct URL, not Defteros proxy path</span></div></div></div>`},
+
+// ── Auth & Identity ────────────────────────────────
+{id:'ory',l:'Ory Kratos',cat:'infra',sz:6,rel:1,
+ desc:'Identity platform at iam.auth.barsys.com. Handles all OTP (phone), Apple SSO, Google SSO flows. Session tokens (ory_st_*) validated by Defteros via /sessions/whoami — cached in ory_token_cache table (expires_at column) to reduce Ory round-trips. Admin API used for profile deletion. Defteros also issues RS256 JWTs post token-exchange for newer auth flow — JWKS at /.well-known/jwks.json.',
+ code:`<span class="cc">// Defteros token validation (Go)</span>
+<span class="ck">func</span> validateOryToken(token string) (*Session, error) {
+  <span class="cc">// 1. Check ory_token_cache in Postgres</span>
+  cached, _ := db.GetTokenCache(token)
+  <span class="ck">if</span> cached != nil && !cached.IsExpired() {
+    <span class="ck">return</span> cached.Session, nil
+  }
+  <span class="cc">// 2. Call Ory /sessions/whoami</span>
+  session, _ := oryClient.ToSession(token)
+  <span class="cc">// 3. Cache result with expires_at</span>
+  db.SetTokenCache(token, session)
+  <span class="ck">return</span> session, nil
+}`,
+ conn:['defteros','ios-app','auth-flow'],
+ guide:`<div class="gs"><div class="gt">Token exchange flow</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">POST /api/v1/auth/token-exchange with Ory session_token</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Defteros issues RS256 JWT (valid JWT_EXPIRY_HOURS, default 24h)</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Use RS256 JWT for subsequent calls — no more Ory round-trips</span></div></div></div>`},
+
+// ── Data Layer ─────────────────────────────────────
+{id:'postgres',l:'PostgreSQL',cat:'data',sz:7,rel:1,
+ desc:'Primary database. 111 migrations, 64 tables total. pgvector extension for embeddings (recipe_embeddings VECTOR(768), mixlist_embeddings VECTOR(768), device_docs VECTOR(1536), barsys_scraped_content VECTOR(1536)). HNSW indexes on all vector columns. Full-text search via tsvector on recipes.search_vector (auto-updated by trigger). Key JSONB tables: cocktail_recipes (ingredients, instructions, image, author), analytics_events (properties), devices (configuration). Cloud Run uses POSTGRES_SOCKET for unix socket connection.',
+ code:`<span class="cc">-- Key tables (111 migrations, 64 tables)</span>
+cocktail_recipes      <span class="cc">-- JSONB ingredients/instructions</span>
+cocktail_mixlists     <span class="cc">-- + cocktail_mixlist_items</span>
+cocktail_recipe_favorites
+mixlist_favorites
+my_bar_items          <span class="cc">-- V4.1 product-based inventory</span>
+bar                   <span class="cc">-- legacy flat inventory</span>
+devices               <span class="cc">-- JSONB configuration (A-F slots)</span>
+party_sessions        <span class="cc">-- + 6 party tables</span>
+analytics_events      <span class="cc">-- JSONB properties, PII fields</span>
+recipe_embeddings     <span class="cc">-- VECTOR(768) HNSW index</span>`,
+ conn:['defteros'],
+ guide:`<div class="gs"><div class="gt">Run pgvector similarity search</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Enable extension: <code>CREATE EXTENSION IF NOT EXISTS vector;</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Query: <code>ORDER BY embedding &lt;=&gt; $queryVec LIMIT 5</code></span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">HNSW index on embedding column required for performance</span></div></div></div>`},
+
+{id:'mysql',l:'MySQL Legacy',cat:'data',sz:5,rel:.8,
+ desc:'Secondary database for backward compatibility. Dual-write: Postgres is primary, MySQL receives async fire-and-forget sync (goroutines). MYSQL_ENABLED env flag (default: false). MySQL sync skipped if user has no phone number (silently logged). Recipe, mixlist, user CRUD all have async MySQL counterparts. The /user/loginv1 endpoint iOS calls is the MySQL legacy token exchange path. Analytics still validates against MySQL tokens for backward compat.',
+ code:`<span class="cc">// Async MySQL sync pattern (Go)</span>
+<span class="ck">go func</span>() {
+  <span class="cc">// Fire-and-forget — errors logged, not returned</span>
+  <span class="ck">if</span> user.Phone == <span class="cs">""</span> {
+    log.Warn(<span class="cs">"skipping MySQL sync: no phone"</span>)
+    <span class="ck">return</span>
+  }
+  mysqlDB.UpsertRecipe(recipe)
+}()
+
+<span class="cc">// Legacy token validation</span>
+<span class="cm">POST</span> {baseUrl}/user/loginv1   <span class="cc">→ MySQL accessToken</span>`,
+ conn:['defteros'],
+ guide:`<div class="gs"><div class="gt">MySQL sync failures</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">MySQL sync is fire-and-forget — client never sees sync failures</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Check Defteros logs for <code>mysql sync error</code> entries</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Users without phone numbers silently skip MySQL — divergence risk</span></div></div></div>`},
+
+{id:'sqlite-cache',l:'SQLite Cache',cat:'data',sz:5,rel:1,
+ desc:'iOS local cache via DBManager (mixlist.sqlite). Tables: mixlists, recipes, ingredients (FK→recipes CASCADE), mixlistrecipes, cocktails_recipes (BarBot transient), cocktails_ingredients, customRecipes (not wired), customIngredients (not wired). Never reads from API response directly — all UI reads from SQLite. Sync timestamps stored in UserDefaults: getUpdatedDataTimeStampForCacheRecipeData, getUpdatedDataTimeStampForMixlistData, getUpdatedDataTimeStampForFavourites.',
+ code:`<span class="cc">// DBManager — primary iOS data layer</span>
+<span class="ck">class</span> DBManager {
+  <span class="cc">// Upsert from API delta</span>
+  <span class="ck">func</span> insertToDatabaseAndFetchCount(
+    _ recipes: [Recipe]
+  ) -> Int
+
+  <span class="cc">// Availability matching</span>
+  <span class="ck">func</span> fetchMatchingRecipeLists(
+    allowedIngredients: [String]
+  ) -> [Recipe]
+  <span class="cc">// SQL HAVING: all non-garnish ingredients</span>
+  <span class="cc">// must have matching station category pair</span>
+}`,
+ conn:['ios-app','recipe-browse','mixlists','auth-flow'],
+ guide:`<div class="gs"><div class="gt">SQLite schema migration</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">No migration framework — schema changes require fresh install or manual ALTER</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Test: delete app → reinstall → verify initial sync</span></div><div class="gstep"><span class="gsn">3</span><span class="gst"><code>customRecipes</code> and <code>customIngredients</code> tables exist but UI not wired</span></div></div></div>`},
+
+// ── Infrastructure ─────────────────────────────────
+{id:'pubsub',l:'GCP Pub/Sub',cat:'infra',sz:5,rel:.9,
+ desc:'4 topics. STATION_CONFIG: triggered by any station update → payload {phone, ory_id, device} → downstream consumer pushes to hardware. USER_DATA: new user provisioning → {phone, full_name, email, dob_unix}. REMOVE_USER: account deletion cascade. FULL_RECIPE: flat/AI recipe enrichment pipeline (is_flat=true → consumer enriches → updates back to is_flat=false). All publish calls are async — Defteros does not wait for ACK.',
+ code:`<span class="cc">// Topics (env vars)</span>
+GOOGLE_PUBSUB_TOPIC_STATION_CONFIG
+  → { phone, ory_id, device: Device }
+  <span class="cc">→ hardware config push</span>
+
+GOOGLE_PUBSUB_TOPIC_USER_DATA
+  → { phone, full_name, email, dob_unix }
+  <span class="cc">→ CRM / downstream provisioning</span>
+
+GOOGLE_PUBSUB_TOPIC_REMOVE_USER
+  <span class="cc">→ account deletion cascade</span>
+
+GOOGLE_PUBSUB_TOPIC_FULL_RECIPE
+  → flat_recipe_content
+  <span class="cc">→ AI enrichment pipeline</span>`,
+ conn:['defteros','devices-api','recipes-api','profile-api'],
+ guide:`<div class="gs"><div class="gt">Debug Pub/Sub message delivery</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">GCP Console → Pub/Sub → Topics → View messages</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Check subscription dead letter queue</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Defteros publishes async — 200 response does NOT mean downstream received it</span></div></div></div>`},
+
+{id:'gcs',l:'GCS Storage',cat:'infra',sz:4,rel:.8,
+ desc:'Google Cloud Storage for media. Bucket: defteros-storage (default). Base64 images from iOS profile/recipe endpoints are decoded and uploaded async to GCS. GOOGLE_APPLICATION_CREDENTIALS_JSON env var contains base64-encoded service account JSON (format: data:application/json;base64,...). Returns GCS public URL stored in image.url field of recipe/profile.',
+ code:`<span class="cc">// GCS upload pattern (Go)</span>
+<span class="ck">func</span> uploadBase64Image(b64 string) (string, error) {
+  decoded, _ := base64.Decode(b64)
+  path := fmt.Sprintf(<span class="cs">"%s/%s.jpg"</span>,
+    cfg.BasePath, uuid.New())
+  _ = gcsClient.Upload(ctx, path, decoded)
+  <span class="ck">return</span> publicURL(path), nil
+}`,
+ conn:['defteros','recipes-api','profile-api'],
+ guide:`<div class="gs"><div class="gt">Configure GCS credentials</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Base64-encode service account JSON</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Set env: <code>GOOGLE_APPLICATION_CREDENTIALS_JSON=data:application/json;base64,&lt;encoded&gt;</code></div><div class="gstep"><span class="gsn">3</span><span class="gst">Verify: <code>GOOGLE_STORAGE_BUCKET_NAME</code> matches bucket in GCP console</span></div></div></div>`},
+
+// ── External Services ──────────────────────────────
+{id:'bond',l:'Bond / BarBot',cat:'ble',sz:6,rel:.95,
+ desc:'Separate AI service (ci.bond-mvp1.barsys.com + ci.bond.barsys.com). NOT part of Defteros — iOS calls Bond directly. Defteros has /api/v1/chat as a transparent proxy. Bond powers: BarBot chat (POST /api/chat), ingredient image detection (POST /api/image/multipart — different subdomain: bond not bond-mvp1), home card recommendations, shopping list intelligence. SSL pinned in iOS (RELEASE only). Production: blocking POST, no SSE.',
+ code:`<span class="cc">// Two Bond subdomains</span>
+ci.bond-mvp1.barsys.com  <span class="cc">→ BarBot chat</span>
+ci.bond.barsys.com       <span class="cc">→ Image scanner</span>
+
+<span class="cc">// BarBot response model</span>
+{
+  <span class="cs">"response"</span>: <span class="cs">"Here's a Negroni recipe..."</span>,
+  <span class="cs">"recipes"</span>: [RecipeElement],
+  <span class="cs">"actionCards"</span>: [ActionCard],
+  <span class="cs">"barsys"</span>: {
+    <span class="cs">"mixlists"</span>: [...],
+    <span class="cs">"recipes"</span>: [...]
+  }
+}`,
+ conn:['ios-app','barbot','scanner','defteros'],
+ guide:`<div class="gs"><div class="gt">BarBot production vs SSE branch</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">Production iOS: blocking POST, waits 2-5s for full response</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">SSE only on <code>feature/barbot-sse-migration</code> branch — NOT in prod</span></div><div class="gstep"><span class="gsn">3</span><span class="gst"><code>bar_items</code> field (BLE station context injection) is SSE-only — always nil in prod</span></div></div></div>`},
+
+{id:'ble-hardware',l:'BLE Hardware',cat:'ble',sz:6,rel:1,
+ desc:'Three Barsys hardware devices. All BLE logic is iOS-side only — Defteros has zero BLE code. Nordic UART Service (UUID 6E400001-B5A3-F393-E0A9-E50E24DCCA9E). Write char: 6E400002 (app→device, .withResponse). Notify char: 6E400003 (device→app). Commands are UTF-8 comma-separated strings. Commands queued serially via BLECommandChannel actor. Automatic reconnect with exponential backoff. 15s scan timeout, 10s connection timeout.',
+ code:`<span class="cc">// Nordic UART UUIDs</span>
+Service:  <span class="cs">6E400001-B5A3-F393-E0A9-E50E24DCCA9E</span>
+Write:    <span class="cs">6E400002-B5A3-F393-E0A9-E50E24DCCA9E</span>
+Notify:   <span class="cs">6E400003-B5A3-F393-E0A9-E50E24DCCA9E</span>
+
+<span class="cc">// Device prefixes</span>
+barsys_360 / barsys360 / basys_360  → Barsys 360
+barsys_c                             → Coaster 2.0
+barsys_s                             → Shaker Pro
+
+<span class="cc">// Key opcodes</span>
+<span class="cn">200</span> → Pour     <span class="cn">202</span> → Cancel
+<span class="cn">221</span> → Complete <span class="cn">222</span> → Quantity report`,
+ conn:['ios-app','crafting','my-bar','devices-api'],
+ guide:`<div class="gs"><div class="gt">BLE command protocol rules</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Opcode 227 (clean/pause) requires trailing comma: <code>"227,1,"</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Opcode 241 (rename) has NO comma: <code>"241NewName"</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Station numbers: 1-based in commands, 0-based in 218/231 feedback</span></div></div></div>`},
+
+
+
+// ── iOS — Missing Features ──────────────────────────────────────
+
+,{id:'station-cleaning',l:'Station Cleaning',cat:'ios',sz:5,rel:.9,
+ desc:'Full cleaning/flush workflow for Barsys 360 stations. Handles perishable ingredient cleanup, tubing flush sequences. StationCleaningFlowViewController + StationCleaningFlowModel. Triggered from ControlCenterViewController when user switches a perishable ingredient. Sends opcode 227 (clean/pause) via BLE — requires trailing comma: "227,1,".',
+ code:`<span class="cc">// Opcode 227 — clean/pause</span>
+BLECommandChannel.send(<span class="cs">"227,1,"</span>)  <span class="cc">// trailing comma required!</span>
+
+<span class="cc">// Flow</span>
+ControlCenterVC
+  → StationCleaningFlowVC
+    → StationCleaningFlowModel
+      → BLE opcode 227
+      → Confirm → update station slot`,
+ conn:['ios-app','my-bar','crafting','ble-hardware'],
+ guide:`<div class="gs"><div class="gt">Trigger station clean</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">User replaces perishable in ControlCenterVC</span></div><div class="gstep hl"><span class="gsn">2</span><span class="gst">Launch <code>StationCleaningFlowViewController</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Opcode 227 requires trailing comma — <code>"227,1,"</code> not <code>"227,1"</code></span></div></div></div>`},
+
+{id:'barbot-history',l:'BarBot History',cat:'ios',sz:5,rel:.85,
+ desc:'BarBot AI chat session history screen. BarBotHistoryViewController displays list of past sessions. BarBotApiService.getSessionList() fetches sessions per user. BarBotApiService.getSessionMessages(sessionId:) loads individual session transcript. Models: BarBotSessionSummary, BarBotMessageItem. Accessible from BarBot tab.',
+ code:`<span class="cc">// API calls</span>
+<span class="cm">GET</span> /api/v1/sessions?user_id={\(userId)}
+<span class="cc">→ [BarBotSessionSummary]</span>
+
+<span class="cm">GET</span> /api/v1/sessions/{\(id)}/messages
+<span class="cc">→ [BarBotMessageItem]</span>`,
+ conn:['barbot','chat-api','ios-app'],
+ guide:`<div class="gs"><div class="gt">Open a past session</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Tap history icon in BarBot tab</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Select session from <code>BarBotHistoryViewController</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Messages reload via <code>getSessionMessages(sessionId:)</code></span></div></div></div>`},
+
+{id:'profile-mgmt',l:'Profile Management',cat:'ios',sz:5,rel:.85,
+ desc:'Full account lifecycle: view, edit, and delete user profile. MyProfileViewController handles display. EditViewController covers profile field updates (name, DOB, email). MyProfileApiService includes delete endpoint — wipes Keychain and returns to Login on success. Profile data cached in Keychain: user_phone, user_email, name, user_dob, userId.',
+ code:`<span class="cc">// Keychain keys for user profile</span>
+<span class="cs">"user_phone"</span>   → phone (auth key)
+<span class="cs">"user_email"</span>   → email
+<span class="cs">"name"</span>         → display name
+<span class="cs">"user_dob"</span>     → date of birth
+<span class="cs">"userId"</span>       → Ory identity ID
+
+<span class="cc">// Delete account clears all keys</span>
+<span class="cm">DELETE</span> /my/profile → clearAllKeychain()`,
+ conn:['ios-app','profile-api','auth-flow'],
+ guide:`<div class="gs"><div class="gt">Delete user account</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">Irreversible — clears all Keychain data</span></div><div class="gstep"><span class="gsn">1</span><span class="gst">Call <code>MyProfileApiService.deleteAccount()</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">On success: clear Keychain → <code>triggerSessionExpirationLogout()</code></span></div></div></div>`},
+
+{id:'settings-ui',l:'Settings & Preferences',cat:'ios',sz:4,rel:.8,
+ desc:'App settings screens. UnitPreferencesViewController + UnitPreferencesViewModel: toggle between mL and oz measurement units. UI adapts to connected device (Barsys 360 vs Coaster shows different available units). SideMenuViewController: side drawer navigation. WebViewController: in-app WebView for FAQ, Terms, Privacy, Contact, About (all load barsys.com URLs).',
+ code:`<span class="cc">// External URLs loaded in WebViewController</span>
+FAQ:     <span class="cs">https://barsys.com/faqs</span>
+Contact: <span class="cs">https://barsys.com/contact-us</span>
+Terms:   <span class="cs">https://barsys.com/terms-of-service</span>
+Privacy: <span class="cs">https://barsys.com/privacy-policy</span>
+About:   <span class="cs">https://barsys.com/our-story</span>`,
+ conn:['ios-app','my-bar'],
+ guide:`<div class="gs"><div class="gt">Change units</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Open <code>UnitPreferencesViewController</code> from settings</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Toggle mL ↔ oz — saved to UserDefaults</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">CraftingVC reads preference before pour commands</span></div></div></div>`},
+
+{id:'onboarding',l:'Onboarding Flow',cat:'ios',sz:4,rel:.8,
+ desc:'New user onboarding sequence. SplashViewController → LoginViewController (phone entry) → OTP verify → SignUpViewController (name, DOB, email) → CountryPickerViewController → TutorialViewController → TabBar. SuccessViewController shown after device pairing. SelectQuantityViewController: quantity picker for ingredient amounts. All screens part of the pre-auth coordinator flow.',
+ code:`<span class="cc">// Onboarding coordinator flow</span>
+SplashVC
+  → LoginVC        <span class="cc">// phone input</span>
+  → OTP verify
+  → SignUpVC       <span class="cc">// profile fields</span>
+  → CountryPickerVC
+  → TutorialVC
+  → TabBarVC       <span class="cc">// authenticated</span>
+
+<span class="cc">// Post-pairing</span>
+DevicePairedVC → SuccessVC`,
+ conn:['ios-app','auth-flow','device-pairing-ui'],
+ guide:`<div class="gs"><div class="gt">Skip tutorial in dev builds</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Set <code>UserDefaults.hasTutorial = true</code> in debug scheme</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">AppCoordinator will bypass TutorialVC</span></div></div></div>`},
+
+{id:'device-pairing-ui',l:'Device Pairing UI',cat:'ios',sz:5,rel:.9,
+ desc:'BLE device discovery and pairing flow. DeviceListViewController: scans and lists nearby Barsys devices (filtered by prefix barsys_360, barsys_c, barsys_s). PairYourDeviceViewController: guides user through pairing steps. DeviceConnectedController / DevicePairedViewController: post-pairing success screen. DeviceDetectedPopUpVc: auto-pop when device detected nearby. All feeds into Bond BLE library.',
+ code:`<span class="cc">// Device name prefix filtering</span>
+barsys_360 / barsys360 → Barsys 360
+barsys_c               → Coaster 2.0
+barsys_s               → Shaker Pro
+
+<span class="cc">// Pairing flow</span>
+DeviceListVC (BLE scan)
+  → DeviceDetectedPopUp (auto)
+  → PairYourDeviceVC
+  → Bond.connect(peripheral)
+  → DeviceConnectedVC
+  → SuccessVC`,
+ conn:['ios-app','bond','ble-hardware','devices-api'],
+ guide:`<div class="gs"><div class="gt">Handle device not found</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">15s scan timeout in Bond — show retry UI</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Check device prefix — reject unknown BLE names</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">iOS 15+ requires NSBluetoothAlwaysUsageDescription in Info.plist</span></div></div></div>`},
+
+{id:'favorites-drinks',l:'Favourites & My Drinks',cat:'ios',sz:4,rel:.8,
+ desc:'Two sub-tabs under FavouritesRecipesAndDrinksViewController. Favourites: user-starred recipes, stored in SQLite via DBManager. My Drinks: recipes crafted by the user (DrinkCompleteVC logs them post-pour). Both are SQLite-read-first. Synced to Defteros on app foreground via delta sync. ReadyToPourListViewController: filtered list showing only craftable recipes from favourites based on current MyBar state.',
+ code:`<span class="cc">// SQLite tables used</span>
+favourites    → user starred recipes
+my_drinks     → crafted drink log
+              (written by DrinkCompleteVC)
+
+<span class="cc">// ReadyToPourList filter</span>
+<span class="cc">-- SQL HAVING: all non-garnish</span>
+<span class="cc">-- ingredients must match</span>
+<span class="cc">-- a station category pair</span>`,
+ conn:['ios-app','recipe-browse','sqlite-cache','crafting'],
+ guide:`<div class="gs"><div class="gt">Refresh favourites list</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Pull-to-refresh triggers delta sync via <code>AppStateManager</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">ReadyToPour recalculates availability from current MyBar</span></div></div></div>`},
+
+// ── Backend — Missing APIs ──────────────────────────────────────
+
+{id:'ingredients-catalog',l:'Ingredients Catalog',cat:'backend',sz:6,rel:1,
+ desc:'V4.1 ingredient architecture — replaces flat ingredient lists. Two-tier: Categories → Products. GET /api/v1/ingredients/categories (public), GET /ingredients/categories/:id/products (public), GET /ingredients/products/search (public). Products are the unit of truth for MyBar, scanner, recipe ingredients. Migrations: categories table, products table, recipe_ingredients join table.',
+ code:`<span class="cm">GET</span> /api/v1/ingredients/categories
+<span class="cm">GET</span> /api/v1/ingredients/categories/<span class="cn">:id</span>/products
+<span class="cm">GET</span> /api/v1/ingredients/products/search?q=
+
+<span class="cc">// V4.1 data model</span>
+Category { id, name, icon_url }
+Product  { id, category_id, name, brand,
+           barcode, abv, image_url }`,
+ conn:['defteros','mybar-api','scanner-api','recipe-catalog-api'],
+ guide:`<div class="gs"><div class="gt">Add new product</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">POST to admin endpoint with category_id + barcode</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Scanner detection will match via barcode lookup</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Delta sync pushes to iOS SQLite on next app open</span></div></div></div>`},
+
+{id:'home-cards-api',l:'Home Cards API',cat:'backend',sz:4,rel:.8,
+ desc:'GET /api/v1/home-cards — proxies to Barbot ML service for personalized home page feed cards. Cards are assembled by Barbot based on user taste profile, recent activity, trending recipes. Handler: home_cards_handler.go, backed by BarbotHTTPRepository.',
+ code:`<span class="cm">GET</span> /api/v1/home-cards
+
+<span class="cc">// Defteros proxies to Barbot ML</span>
+<span class="cc">// Barbot returns:</span>
+HomeCard { type, recipe_id, title,
+           image_url, reason_label }`,
+ conn:['defteros','barbot-ml','barbot'],
+ guide:`<div class="gs"><div class="gt">Debug empty home feed</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Check <code>BARBOT_BASE_URI</code> env var is set</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Barbot service may be down — fallback returns trending</span></div></div></div>`},
+
+{id:'recipe-catalog-api',l:'Recipe Catalog API',cat:'backend',sz:6,rel:1,
+ desc:'Full recipe catalog (JWT auth). Separate from cocktail cache. GET /api/v1/recipes (list), /recipes/search, /recipes/:id, /recipes/trending, /recipes/categories, /recipes/recommended, /recipes/:id/ratings, /recipes/:id/similar. RecipeService handles vector-based similarity search using recipe_embeddings. Powers the Explore tab discovery.',
+ code:`<span class="cm">GET</span> /api/v1/recipes?page=&limit=
+<span class="cm">GET</span> /api/v1/recipes/trending
+<span class="cm">GET</span> /api/v1/recipes/recommended   <span class="cc">// JWT</span>
+<span class="cm">GET</span> /api/v1/recipes/search?q=
+<span class="cm">GET</span> /api/v1/recipes/<span class="cn">:id</span>/similar
+<span class="cm">GET</span> /api/v1/recipes/<span class="cn">:id</span>/ratings`,
+ conn:['defteros','ingredients-catalog','vector-embeddings','recipes-api','taste-calibration-api'],
+ guide:`<div class="gs"><div class="gt">Add recipe recommendation logic</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Update recipe_embeddings via ML pipeline</span></div><div class="gstep"><span class="gsn">2</span><span class="gst"><code>/recipes/recommended</code> uses taste profile + embeddings</span></div></div></div>`},
+
+{id:'crafting-session-api',l:'Crafting Session API',cat:'backend',sz:5,rel:.9,
+ desc:'Server-side crafting session tracking for Ark machine. POST /my/crafting/start (JWT), GET /my/crafting/:id/status, POST /my/crafting/:id/complete. CraftingSessionService persists pour events and machine state to crafting_sessions table. Tied to station telemetry events. Enables My Drinks history and intelligence scoring.',
+ code:`<span class="cm">POST</span> /api/v1/my/crafting/start
+<span class="cm">GET</span>  /api/v1/my/crafting/<span class="cn">:id</span>/status
+<span class="cm">POST</span> /api/v1/my/crafting/<span class="cn">:id</span>/complete
+
+CraftingSession {
+  id, user_id, recipe_id,
+  device_number, status,
+  started_at, completed_at
+}`,
+ conn:['defteros','station-telemetry','crafting','mybar-api'],
+ guide:`<div class="gs"><div class="gt">Debug stalled crafting session</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Check status via GET /my/crafting/:id/status</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">If BLE disconnected mid-pour, session stays open</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">POST /complete must be called even on cancel to close session</span></div></div></div>`},
+
+{id:'station-telemetry',l:'Station Telemetry',cat:'backend',sz:5,rel:.85,
+ desc:'POST /api/v1/my/station/events — receives real-time telemetry from Barsys Ark machine: pour start/complete, volume dispensed, error codes, station slot states. StationEventService writes to station_events table. Events fan out to GCP Pub/Sub for analytics pipeline. Enables pour accuracy tracking and maintenance alerts.',
+ code:`<span class="cm">POST</span> /api/v1/my/station/events
+
+StationEvent {
+  device_number, event_type,
+  station_slot, volume_ml,
+  error_code, timestamp
+}
+
+<span class="cc">// event_type values:</span>
+<span class="cs">"pour_start"</span>  <span class="cs">"pour_complete"</span>
+<span class="cs">"pour_error"</span>  <span class="cs">"slot_update"</span>`,
+ conn:['defteros','crafting-session-api','pubsub','devices-api'],
+ guide:`<div class="gs"><div class="gt">Handle pour error event</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Event type <code>"pour_error"</code> with error_code fires PubSub alert</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">iOS receives SSE update with error state</span></div></div></div>`},
+
+{id:'scanner-api',l:'Scanner API',cat:'backend',sz:7,rel:1,
+ desc:'Full bottle/ingredient scanner system. Endpoints: POST /scanner/sessions (create session), GET /scanner/sessions/:id, POST /scanner/sessions/:id/scan (submit barcode), POST /scanner/sessions/:id/review, POST /scanner/sessions/:id/recommendations, POST /scanner/sessions/:id/claim (merge to MyBar). POST /my/bar/scan-merge (bulk merge). POST /scanner/brand-impressions. GET /my/shopping-list, GET /my/discovery. ScannerService proxies barcode detection to Barbot ML.',
+ code:`<span class="cm">POST</span> /api/v1/scanner/sessions
+<span class="cm">POST</span> /api/v1/scanner/sessions/<span class="cn">:id</span>/scan
+<span class="cm">POST</span> /api/v1/scanner/sessions/<span class="cn">:id</span>/recommendations
+<span class="cm">POST</span> /api/v1/scanner/sessions/<span class="cn">:id</span>/claim
+<span class="cm">POST</span> /api/v1/my/bar/scan-merge
+<span class="cm">GET</span>  /api/v1/my/shopping-list
+<span class="cm">GET</span>  /api/v1/my/discovery`,
+ conn:['defteros','barbot-ml','ingredients-catalog','social-scan-api','shopping-list','mybar-api'],
+ guide:`<div class="gs"><div class="gt">Full scan-to-bar flow</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">POST /scanner/sessions → sessionId</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">POST /sessions/:id/scan for each barcode</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">POST /sessions/:id/claim → merges detections into MyBar</span></div></div></div>`},
+
+{id:'social-scan-api',l:'Social Scan API',cat:'backend',sz:4,rel:.8,
+ desc:'Group ingredient scanning sessions. POST /scanner/social-sessions (create, JWT), POST /social-sessions/:code/join (join by code, JWT), GET /social-sessions/:id, GET /social-sessions/:id/results. SocialScanService coordinates multi-user scanning — results merged into a shared detected list. DB tables: social_scan_sessions, social_scan_participants.',
+ code:`<span class="cm">POST</span> /api/v1/scanner/social-sessions
+<span class="cc">→ { session_id, join_code }</span>
+
+<span class="cm">POST</span> /api/v1/scanner/social-sessions/<span class="cn">:code</span>/join
+<span class="cm">GET</span>  /api/v1/scanner/social-sessions/<span class="cn">:id</span>/results`,
+ conn:['defteros','scanner-api','party-api'],
+ guide:`<div class="gs"><div class="gt">Start a group scan</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Host calls POST /social-sessions → gets join_code</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Guests call POST /social-sessions/:code/join</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">All scan independently — results merged on GET /results</span></div></div></div>`},
+
+{id:'taste-calibration-api',l:'Taste Calibration API',cat:'backend',sz:5,rel:.85,
+ desc:'User taste profile calibration. GET /api/v1/my/taste-profile (JWT), PUT /my/taste-profile. Stores flavour preferences: sweet, sour, bitter, strong, fruity, herbal — each 0–10. TasteCalibrationService reads/writes taste_calibration table. Profile feeds into recipe recommendations and intelligence scoring.',
+ code:`<span class="cm">GET</span> /api/v1/my/taste-profile
+<span class="cm">PUT</span> /api/v1/my/taste-profile
+
+TasteProfile {
+  sweet: 0-10, sour: 0-10,
+  bitter: 0-10, strong: 0-10,
+  fruity: 0-10, herbal: 0-10
+}`,
+ conn:['defteros','profile-api','intelligence-api','recipe-catalog-api'],
+ guide:`<div class="gs"><div class="gt">Update taste profile</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">PUT /my/taste-profile with preference values</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Recipe recommendations refresh on next /recipes/recommended call</span></div></div></div>`},
+
+{id:'pour-cards-api',l:'Pour Cards API',cat:'backend',sz:4,rel:.75,
+ desc:'User-created video drink recipe cards. POST /my/pour-cards (JWT, creates card), GET /my/pour-cards (list), PATCH /my/pour-cards/:id (update), GET /pour-cards/:id (PUBLIC — no auth). Videos stored in GCS. PourCardService manages upload lifecycle. Shareable via public URL.',
+ code:`<span class="cm">POST</span>  /api/v1/my/pour-cards         <span class="cc">// JWT</span>
+<span class="cm">GET</span>   /api/v1/my/pour-cards         <span class="cc">// JWT</span>
+<span class="cm">PATCH</span> /api/v1/my/pour-cards/<span class="cn">:id</span>   <span class="cc">// JWT</span>
+<span class="cm">GET</span>   /api/v1/pour-cards/<span class="cn">:id</span>      <span class="cc">// PUBLIC</span>
+
+PourCard { id, user_id, recipe_id,
+           video_url, thumbnail_url, title }`,
+ conn:['defteros','gcs','crafting','crafting-session-api'],
+ guide:`<div class="gs"><div class="gt">Create pour card</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Upload video to GCS → get video_url</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">POST /my/pour-cards with recipe_id + video_url</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Public URL: /pour-cards/:id (no auth needed)</span></div></div></div>`},
+
+{id:'intelligence-api',l:'Intelligence API',cat:'backend',sz:5,rel:.85,
+ desc:'User insights and stats dashboard. GET /api/v1/my/intelligence (JWT): summary of scans, pours, streaks, top ingredients, flavour breakdown. GET /my/intelligence/timeline: chronological activity. IntelligenceService aggregates across scanner, crafting, analytics tables. Feeds the "INTELLIGENCE" score in social/party leaderboard.',
+ code:`<span class="cm">GET</span> /api/v1/my/intelligence
+<span class="cm">GET</span> /api/v1/my/intelligence/timeline
+
+Intelligence {
+  scan_count, pour_count,
+  streak_days, top_spirits[],
+  taste_breakdown{},
+  intelligence_score: 0-100
+}`,
+ conn:['defteros','analytics-api','streaks-api','taste-calibration-api','social-api'],
+ guide:`<div class="gs"><div class="gt">Intelligence score calculation</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Score = weighted sum of scan_count, pour_count, streak, diversity</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Updated asynchronously via PubSub event on each pour/scan</span></div></div></div>`},
+
+{id:'streaks-api',l:'Streaks API',cat:'backend',sz:4,rel:.8,
+ desc:'Daily scanning streak tracking. GET /api/v1/my/streaks (JWT): current streak, longest streak, last scan date. ScanStreakService increments streak on each scanner session claim. Streak resets after 24h inactivity. streak data in scan_streaks table. Feeds intelligence score and gamification badges.',
+ code:`<span class="cm">GET</span> /api/v1/my/streaks
+
+ScanStreak {
+  current_streak: int,
+  longest_streak: int,
+  last_scan_date: ISO8601,
+  total_scan_days: int
+}`,
+ conn:['defteros','scanner-api','intelligence-api'],
+ guide:`<div class="gs"><div class="gt">Streak reset logic</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Streak increments only on /scanner/sessions/:id/claim</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Resets if last_scan_date > 24h ago</span></div></div></div>`},
+
+{id:'chat-api',l:'Chat API',cat:'backend',sz:6,rel:1,
+ desc:'Bond AI proxy — HTTP forwarding (not SSE). Routes: ANY /api/v1/chat and ANY /api/v1/chat/* proxied to Bond service /api/chat endpoint. Handler uses c.Blob(resp.StatusCode, ...) to forward raw response bytes. Extensions: GET /chat/history (conversation log), POST /chat/feedback (Bond feedback). Chat history persisted in chat_history + chat_history_summary tables. Base URL from BOND_SERVICE_URL env var.',
+ code:`<span class="cc">// chat_handler.go — HTTP proxy (NOT SSE)</span>
+ANY /api/v1/chat      <span class="cc">// → Bond /api/chat</span>
+ANY /api/v1/chat/*    <span class="cc">// wildcard proxy</span>
+GET  /chat/history    <span class="cc">// conversation log</span>
+POST /chat/feedback   <span class="cc">// Bond feedback</span>
+
+<span class="cc">// Proxy implementation</span>
+<span class="ck">func</span> (h *ChatHandler) ProxyRequest(c echo.Context) error {
+  resp := forwardToBond(c.Request())
+  <span class="ck">return</span> c.Blob(resp.StatusCode,
+    resp.Header.Get(<span class="cs">"Content-Type"</span>), body)
+}`,
+ conn:['defteros','bond-ai','barbot','barbot-history'],
+ guide:`<div class="gs"><div class="gt">Debug SSE disconnects</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Bond proxy must forward <code>Transfer-Encoding: chunked</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">iOS URLSession requires <code>responseType = .stream</code> for SSE</span></div></div></div>`},
+
+{id:'push-notifications-api',l:'Push Notifications API',cat:'backend',sz:4,rel:.8,
+ desc:'Push token management for APNs (iOS). PUT /api/v1/my/push-token (JWT): register device push token. DELETE /api/v1/my/push-token: deregister. NotificationsService stores tokens in push_tokens table keyed by user_id + device_id. Used by party mode and crafting completion notifications. Firebase Admin SDK on backend for APNs delivery.',
+ code:`<span class="cm">PUT</span>    /api/v1/my/push-token
+<span class="cm">DELETE</span> /api/v1/my/push-token
+
+PushToken {
+  user_id, device_id,
+  token: string,    <span class="cc">// APNs device token</span>
+  platform: "ios"
+}`,
+ conn:['defteros','profile-api','party-api'],
+ guide:`<div class="gs"><div class="gt">Register push token on launch</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Request permission via <code>UNUserNotificationCenter</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">On token received from APNs: PUT /my/push-token</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Deregister on logout: DELETE /my/push-token</span></div></div></div>`},
+
+{id:'brand-attribution-api',l:'Brand Attribution API',cat:'backend',sz:4,rel:.75,
+ desc:'Brand impression tracking during ingredient scanning. POST /api/v1/scanner/brand-impressions (public): records when a brand label is detected during a scan session. GET /admin/brand-reports/:brand (JWT/admin): brand analytics report. BrandService writes to brand_impressions table. Enables brand partnership analytics — which brands get detected most often.',
+ code:`<span class="cm">POST</span> /api/v1/scanner/brand-impressions  <span class="cc">// public</span>
+<span class="cm">GET</span>  /api/v1/admin/brand-reports/<span class="cn">:brand</span> <span class="cc">// admin</span>
+
+BrandImpression {
+  session_id, brand_id,
+  product_id, confidence: float,
+  timestamp
+}`,
+ conn:['defteros','scanner-api','analytics-api'],
+ guide:`<div class="gs"><div class="gt">View brand report</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">GET /admin/brand-reports/:brand (admin JWT)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Returns impression_count, top_products[], daily_trend[]</span></div></div></div>`},
+
+// ── Infrastructure — Missing Services ──────────────────────────
+
+{id:'barbot-ml',l:'Barbot ML Service',cat:'infra',sz:6,rel:1,
+ desc:'Machine learning microservice for ingredient/bottle detection. Defteros config: BARBOT_BASE_URI (default localhost:8000 dev; production at ci.bond.barsys.com). Accessed via BarbotHTTPRepository. Handles: barcode detection from camera frames, ingredient identification from labels, recipe recommendation from detected inventory, home card generation. Distinct from Bond AI (BOND_BASE_URI=ci.bond-mvp1.barsys.com) — barbot-ml is the vision/scanner service; Bond is conversational AI. Used by Scanner API, Home Cards, Social Scan.',
+ code:`<span class="cc">// Config</span>
+BARBOT_BASE_URI=http://barbot-service:8000
+
+<span class="cc">// Defteros → Barbot endpoints</span>
+<span class="cm">POST</span> /detect          <span class="cc">→ barcode/label detect</span>
+<span class="cm">POST</span> /recommend       <span class="cc">→ recipe suggestions</span>
+<span class="cm">POST</span> /home-cards      <span class="cc">→ personalized feed</span>
+<span class="cm">POST</span> /social-results  <span class="cc">→ group scan merge</span>`,
+ conn:['scanner-api','home-cards-api','social-scan-api'],
+ guide:`<div class="gs"><div class="gt">Test detection locally</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Set <code>BARBOT_BASE_URI=http://localhost:8000</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">POST /detect with base64 image payload</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Returns { detections: [{barcode, product_id, confidence}] }</span></div></div></div>`},
+
+{id:'bond-ai',l:'Bond AI Service',cat:'infra',sz:6,rel:1,
+ desc:'Conversational AI service for BarBot chat and recipe recommendations. Defteros config: BOND_BASE_URI (default https://ci.bond.barsys.com — no -mvp1 suffix). BondHTTPRepository proxies to Bond. iOS BarBot uses BarBotSSEClient.swift (URLSession.bytes SSE) connecting to ci.bond-cof.barsys.com/api/; action cards use ci.bond.barsys.com/api/. Defteros proxies ANY /chat/* to Bond. Chat history/feedback extension routes planned but not yet wired in tritos.',
+ code:`<span class="cc">// Config</span>
+BOND_BASE_URI=https://ci.bond.barsys.com
+
+<span class="cc">// iOS SSL pinning (RELEASE only)</span>
+api-ng.barsys.com
+ci.bond-mvp1.barsys.com
+
+<span class="cc">// SSE stream from Bond</span>
+Content-Type: text/event-stream
+data: {"token":"...", "done": false}
+data: {"done": true, "recipe_id": "..."}`,
+ conn:['chat-api','barbot','defteros'],
+ guide:`<div class="gs"><div class="gt">Update Bond endpoint</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">iOS pins the TLS cert for Bond — URL change requires app update</span></div><div class="gstep"><span class="gsn">1</span><span class="gst">Update <code>BOND_BASE_URI</code> in Defteros env</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Update iOS SSL pin + app release for direct iOS→Bond connection</span></div></div></div>`},
+
+{id:'websocket-hub',l:'WebSocket Hub',cat:'infra',sz:4,rel:.8,
+ desc:'Gorilla WebSocket hub for Party Mode real-time events. GET /api/v1/party/sessions/:id/ws (PartyOrGuest auth): upgrades HTTP to WebSocket. PartyHub broadcasts events to all session participants: drink_request, challenge_start, score_update, session_end. Enables live leaderboard updates and shake challenges without polling.',
+ code:`<span class="cm">GET</span> /api/v1/party/sessions/<span class="cn">:id</span>/ws
+<span class="cc">→ Upgrade: WebSocket</span>
+<span class="cc">→ Auth: PartyOrGuest JWT</span>
+
+<span class="cc">// Broadcast event types</span>
+<span class="cs">"drink_request"</span>  <span class="cs">"challenge_start"</span>
+<span class="cs">"score_update"</span>   <span class="cs">"session_end"</span>
+<span class="cs">"new_participant"</span>`,
+ conn:['party-api','defteros'],
+ guide:`<div class="gs"><div class="gt">Connect party WebSocket</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Get party JWT (host or guest token)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Connect: wss://api-ng.barsys.com/api/v1/party/sessions/:id/ws</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">iOS uses URLSessionWebSocketTask — no third-party lib</span></div></div></div>`},
+
+{id:'observability',l:'Observability',cat:'infra',sz:4,rel:.7,
+ desc:'Prometheus metrics + structured logging for Defteros. HTTP metrics: request count, latency histogram, in-flight requests — all labelled by route + status. Metrics endpoint: GET /metrics (Prometheus scrape). Structured logging via Go slog with context injection middleware — includes request_id, user_id, route on every log line. Files: /internal/observability/http_metrics.go, logger.go, slog_middleware.go.',
+ code:`<span class="cm">GET</span> /metrics   <span class="cc">→ Prometheus scrape</span>
+
+<span class="cc">// Tracked metrics</span>
+http_requests_total{route,method,status}
+http_request_duration_seconds{route}
+http_requests_in_flight{route}
+
+<span class="cc">// Slog context fields</span>
+request_id, user_id, route, latency_ms`,
+ conn:['defteros','postgres'],
+ guide:`<div class="gs"><div class="gt">Add custom metric</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Register counter/histogram in <code>http_metrics.go</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Increment in handler or middleware</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Scrape via GET /metrics</span></div></div></div>`},
+
+// ── Data — Missing Models ──────────────────────────────────────
+
+{id:'vector-embeddings',l:'Vector Embeddings',cat:'data',sz:5,rel:.85,
+ desc:'Semantic vector embeddings for recipe and mixlist similarity search. Tables: recipe_embeddings (recipe_id, embedding vector), mixlist_embeddings. Generated by ML pipeline from recipe descriptions/ingredients. Used by RecipeService for /recipes/similar and /recipes/recommended endpoints. Stored in PostgreSQL using pgvector extension.',
+ code:`<span class="cc">-- recipe_embeddings table</span>
+recipe_id  UUID FK → recipes
+embedding  vector(1536)   <span class="cc">-- pgvector</span>
+model      text           <span class="cc">-- e.g. "text-embedding-3-small"</span>
+created_at timestamptz
+
+<span class="cc">-- Similarity query</span>
+SELECT recipe_id
+FROM recipe_embeddings
+ORDER BY embedding <=> $1 LIMIT 10`,
+ conn:['postgres','recipe-catalog-api','mixlists-api'],
+ guide:`<div class="gs"><div class="gt">Regenerate embeddings</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Run ML pipeline script against recipes table</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Upsert into recipe_embeddings via COPY</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Verify: GET /recipes/:id/similar returns non-empty</span></div></div></div>`},
+
+{id:'shopping-list',l:'Shopping List',cat:'data',sz:4,rel:.75,
+ desc:'Gap analysis between user MyBar and recipe requirements. GET /api/v1/my/shopping-list (JWT): computes missing ingredients across all favourited recipes — returns ranked list of what to buy to unlock most recipes. GET /api/v1/my/discovery: products the user has never scanned that appear in trending recipes. Both are computed from MyBar + recipe_ingredients join.',
+ code:`<span class="cm">GET</span> /api/v1/my/shopping-list
+<span class="cm">GET</span> /api/v1/my/discovery
+
+ShoppingItem {
+  product_id, product_name,
+  category, unlocks_count,  <span class="cc">// recipes unlocked if bought</span>
+  image_url
+}`,
+ conn:['scanner-api','mybar-api','ingredients-catalog','sqlite-cache'],
+ guide:`<div class="gs"><div class="gt">Shopping list logic</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Joins my_bar × recipe_ingredients for favourited recipes</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Missing items ranked by unlocks_count descending</span></div></div></div>`}
+
+
+
+// ── Granular: iOS Stations ──────────────────────────────────────
+
+,{id:'stations-menu-vc',l:'StationsMenuVC',cat:'ios',sz:6,rel:1,
+ desc:'StationsMenuViewController manages the station slot configuration UI. Calls StationsServiceApi to fetch current slot assignments from the backend. Displays up to 6 station slots; tapping a slot opens ingredient assignment. Triggers BleManager.writeCommand() for clean operations. No separate ViewModel — logic handled directly in the ViewController. Part of ControlCenterViewController child flow.',
+ code:`<span class="cc">// StationsMenuViewController.swift</span>
+<span class="ck">class</span> StationsMenuViewController: UIViewController {
+  <span class="ck">func</span> viewDidLoad() {
+    StationsServiceApi.shared.getStations { stations in
+      self.stations = stations
+      self.tableView.reloadData()
+    }
+  }
+  <span class="ck">func</span> cleanStation(_ slot: Int) {
+    <span class="ck">let</span> cmd = <span class="cs">"227,\(slot),"</span>
+    BleManager.sharedManager.writeCommand(cmd)
+  }
+}`,
+ conn:['my-bar','station-cleaning','ble-hardware','mybar-api','crafting'],
+ guide:`<div class="gs"><div class="gt">Assign ingredient to station</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Tap station button A–F</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Camera → StationsServiceApi.updateStation() with ConfigurationStationBody</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Perishable: must include updatedAt — triggers 48h expiry clock</span></div></div></div>`},
+
+{id:'stations-service-api',l:'StationsServiceApi',cat:'ios',sz:5,rel:1,
+ desc:'iOS API layer for station CRUD. Four methods: getStationsFromServer(deviceName) → GET /devices/{deviceName} (404 triggers initial setup). updateStation(isupdatedDateNeeded,stationName,config) → PUT /devices/{deviceName}/stations/{stationName}, sets global isStationUpdated=true. save360InitialDeviceStationsOnlyFirstTime() → POST /devices with all 6 slots null (first launch only). updateAllStationsTogetherWithPatch(configDict) → PATCH /devices/{deviceName}, bulk update all 6.',
+ code:`<span class="cc">// 1. Get stations</span>
+<span class="cm">GET</span> {baseUrlForRecipes}/devices/{deviceName}
+<span class="cc">→ StationsResponseModel (config.stations.a–f)</span>
+
+<span class="cc">// 2. Update single station</span>
+<span class="cm">PUT</span> {baseUrlForRecipes}/devices/{deviceName}/stations/{stationName}
+body: ConfigurationStationBody
+
+<span class="cc">// 3. First-time setup (404 response only)</span>
+<span class="cm">POST</span> {baseUrlForRecipes}/devices
+body: { stations: { a: null, b: null, ... } }
+
+<span class="cc">// 4. Bulk update all stations</span>
+<span class="cm">PATCH</span> {baseUrlForRecipes}/devices/{deviceName}
+body: { stations: { a: {...}, b: {...}, ... } }`,
+ conn:['my-bar','stations-menu-vc','mybar-api','devices-api'],
+ guide:`<div class="gs"><div class="gt">Station 404 on first launch</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">getStationsFromServer returns 404</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Auto-calls save360InitialDeviceStationsOnlyFirstTime()</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Creates device with 6 null station slots</span></div></div></div>`},
+
+{id:'ble-opcodes',l:'BLE Opcodes',cat:'ble',sz:6,rel:1,
+ desc:'BLE command strings sent over Nordic UART Write characteristic as UTF-8. Pour: "200,1,{qty},2,{qty},..." (1-based slot numbers, comma-separated pairs). Cancel: "202". Clean slot n: "227,{n}," (trailing comma required). Stop cleaning: "227,222,". Commands built inline — no separate BleCommandBuilder class. Feedback from device is 0-based: 218,n,405=dispensing; 217,402=place glass; 221,405=remove glass (triggers DrinkComplete screen).',
+ code:`<span class="cc">// Constants.swift + BleManagerDelegate.swift</span>
+<span class="cc">// SEND (1-based station numbers)</span>
+<span class="cs">"200,1,{qty},2,{qty},..."</span>  <span class="cc">// start pour</span>
+<span class="cs">"202"</span>                      <span class="cc">// cancel pour</span>
+<span class="cs">"227,{n},"</span>                 <span class="cc">// clean slot n (trailing comma!)</span>
+<span class="cs">"227,222,"</span>                 <span class="cc">// stop cleaning</span>
+
+<span class="cc">// RECEIVE (0-based station numbers)</span>
+<span class="cs">"218,n,405"</span>  <span class="cc">// dispensing</span>
+<span class="cs">"217,402"</span>    <span class="cc">// place glass prompt</span>
+<span class="cs">"221,405"</span>    <span class="cc">// remove glass → DrinkCompleteViewController</span>`,
+ conn:['ble-hardware','bond','crafting','station-cleaning'],
+ guide:`<div class="gs"><div class="gt">Station number indexing gotcha</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">Commands use 1-based station numbers (1–6)</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Feedback opcodes 218 and 231 return 0-based station numbers</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">BLECommandChannel actor queues commands serially — never send two at once</span></div></div></div>`},
+
+{id:'ready-to-pour',l:'Ready to Pour',cat:'ios',sz:6,rel:1,
+ desc:'ReadyToPourListViewController: shows only recipes craftable with current station state. SQL HAVING clause ensures all non-garnish ingredient category pairs exist in stations. getMixlistsUpdateClass().getBarsys360ReadyToPourRecipes() builds allowed category pair set from arrStations, passes to DBManager.fetchMatchingRecipeLists(). No server call needed — entirely local SQLite. RecipeCraftingClass().craftRecipeFromRecipeListing() initiates pour from this list.',
+ code:`<span class="cc">-- fetchMatchingRecipeLists SQL</span>
+<span class="ck">SELECT</span> r.*
+<span class="ck">FROM</span> recipes r
+<span class="ck">JOIN</span> ingredients i <span class="ck">ON</span> r.id = i.recipeId
+<span class="ck">WHERE</span> LOWER(i.categoryPrimary)
+  <span class="ck">NOT IN</span> (<span class="cs">'garnish'</span>,<span class="cs">'additionals'</span>,<span class="cs">'additional'</span>)
+<span class="ck">GROUP BY</span> r.id
+<span class="ck">HAVING</span>
+  COUNT(DISTINCT LOWER(i.categoryPrimary)||<span class="cs">'|'</span>||LOWER(i.categorySecondary))
+  =
+  COUNT(DISTINCT <span class="ck">CASE WHEN</span>
+    (LOWER(i.categoryPrimary),LOWER(i.categorySecondary))
+    <span class="ck">IN</span> (allowed_pairs)
+  <span class="ck">THEN</span> LOWER(i.categoryPrimary)||<span class="cs">'|'</span>||LOWER(i.categorySecondary)
+  <span class="ck">END</span>)`,
+ conn:['recipe-browse','my-bar','sqlite-cache','crafting','stations-menu-vc'],
+ guide:`<div class="gs"><div class="gt">Why a recipe doesn't appear in Ready to Pour</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Check station categories vs recipe ingredient categoryPrimary+Secondary pairs</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Garnish/additional categories are excluded from check</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Matching is exact case-insensitive — "Base|Spirit" ≠ "base|spirits"</span></div></div></div>`},
+
+{id:'recipe-model-ios',l:'Recipe Model (iOS)',cat:'ios',sz:6,rel:1,
+ desc:'Recipe data model: struct Recipe: Codable defined in MixlistModel.swift. Key fields: id, name, description, image, ice, ingredients ([RecipeIngredient]), instructions, glassware, tags, variations, barsys360Compatible, isFavourite. RecipeIngredient has a Category sub-struct with primary, secondary, and flavourTags fields — these are used for station matching in isBarsys360RecipeCraftable(). No separate RecipeFilter class — filtering done inline in VCs.',
+ code:`<span class="cc">// MixlistModel.swift</span>
+<span class="ck">struct</span> Recipe: Codable {
+  <span class="ck">let</span> id: String
+  <span class="ck">let</span> name: String
+  <span class="ck">let</span> barsys360Compatible: Bool
+  <span class="ck">let</span> ingredients: [RecipeIngredient]
+  <span class="ck">var</span> isFavourite: Bool
+}
+<span class="ck">struct</span> RecipeIngredient: Codable {
+  <span class="ck">let</span> category: Category
+}
+<span class="ck">struct</span> Category: Codable {
+  <span class="ck">let</span> primary: String?
+  <span class="ck">let</span> secondary: String?  <span class="cc">// used for station match</span>
+  <span class="ck">let</span> flavourTags: [String]?
+}`,
+ conn:['recipe-browse','sqlite-cache','ready-to-pour','mixlists','crafting'],
+ guide:`<div class="gs"><div class="gt">Category matching for station availability</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Use categoryPrimary + categorySecondary pair (both lowercased)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">ingredientOptional=true items are never required for craftability</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Ingredient name is irrelevant — only category pair matters for station matching</span></div></div></div>`},
+
+// ── Granular: Backend ──────────────────────────────────────────
+
+{id:'categories-api',l:'Categories API',cat:'backend',sz:6,rel:1,
+ desc:'V4.1 ingredient categories. GET /api/v1/ingredients/categories (public) — 65 seeded categories. GET /ingredients/categories/:id/products (public). Self-referential hierarchy via parent_category_id. Types: spirit|mixer|garnish|other. Sub-categories: Bourbon→Whiskey, Scotch→Whiskey, Blanco→Tequila, White Rum→Rum, etc. Schema: id UUID, name VARCHAR(100), type CHECK(spirit|mixer|garnish|other), parent_category_id UUID FK self, icon VARCHAR(10), is_garnish BOOL, slug VARCHAR(100) UNIQUE. Indexes: GIN on slug, type, parent.',
+ code:`<span class="cm">GET</span> /api/v1/ingredients/categories
+<span class="cc">→ public, 65 categories</span>
+
+Category {
+  id UUID PK
+  name VARCHAR(100)      <span class="cc">// "Vodka", "Bourbon"</span>
+  type spirit|mixer|garnish|other
+  parent_category_id UUID → categories(id)
+  icon VARCHAR(10)       <span class="cc">// emoji</span>
+  is_garnish BOOL
+  slug VARCHAR(100) UNIQUE
+}
+
+<span class="cc">// Hierarchy example</span>
+Whiskey → Bourbon, Scotch, Rye, Irish, Japanese
+Tequila → Blanco, Reposado, Añejo
+Rum     → White, Dark, Spiced, Aged`,
+ conn:['defteros','ingredients-catalog','products-api','recipe-catalog-api'],
+ guide:`<div class="gs"><div class="gt">Add subcategory</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">INSERT with parent_category_id = parent UUID</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Spirit filter in /recipes uses parent hierarchy via JOIN</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">iOS availability check uses category name match — subcategories must match exactly</span></div></div></div>`},
+
+{id:'products-api',l:'Products API',cat:'backend',sz:6,rel:1,
+ desc:'V4.1 product catalog. GET /ingredients/categories/:id/products, GET /ingredients/products/search?q=. 250+ seeded is_common products. Schema: id UUID, name VARCHAR(200), category_id UUID FK categories, brand VARCHAR(200), image_url TEXT, volume_ml INT, is_common BOOL, created_at, updated_at. ProductWithCategory enriched response includes full category object. Seeded products: Grey Goose/Titos/Absolut (Vodka), Hendricks/Tanqueray/Bombay (Gin), Makers/Woodford/Buffalo Trace (Bourbon), Glenfiddich/Macallan/Lagavulin (Scotch), etc.',
+ code:`<span class="cm">GET</span> /api/v1/ingredients/categories/<span class="cn">:id</span>/products
+<span class="cm">GET</span> /api/v1/ingredients/products/search?q=
+
+Product {
+  id UUID PK
+  name VARCHAR(200)         <span class="cc">// "Grey Goose Vodka"</span>
+  category_id UUID FK       <span class="cc">// → categories</span>
+  brand VARCHAR(200)?       <span class="cc">// "Grey Goose"</span>
+  image_url TEXT?
+  volume_ml INT?            <span class="cc">// 750, 1000</span>
+  is_common BOOL            <span class="cc">// true = seeded</span>
+}
+
+ProductWithCategory {
+  ...Product fields
+  category: BrowseCategoryResponse
+}`,
+ conn:['defteros','categories-api','mybar-api','station-slot-api','ingredients-catalog'],
+ guide:`<div class="gs"><div class="gt">Add new product</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">INSERT with category_id and barcode in metadata</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Set is_common=false for user-submitted products</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Scanner detection matches via barcode → product_id lookup</span></div></div></div>`},
+
+{id:'station-slot-api',l:'Station Slot API',cat:'backend',sz:6,rel:1,
+ desc:'PUT /api/v1/devices/device-number/:deviceNumber/stations/:stationName. Auth: legacy Ory. Slot names A-F (case-insensitive). Validates device ownership via user_device_links. Auto-creates device row on first slot update. Stores in devices.configuration JSONB: config["stations"][slotName] = {product_id, ingredient_name, category, is_perishable, updated_at}. Returns StationSlotResponse{device_number, slot_name, product:ProductWithCategory, updated_at}. Error 400 on invalid slot, 403 on ownership fail, 404 device not found.',
+ code:`<span class="cm">PUT</span> /api/v1/devices/device-number/<span class="cn">:deviceNumber</span>/stations/<span class="cn">:stationName</span>
+body: { "product_id": "UUID" }
+
+<span class="cc">// JSONB stored in devices.configuration:</span>
+{
+  "stations": {
+    "A": {
+      "product_id": "UUID",
+      "ingredient_name": "Grey Goose Vodka",
+      "category": "Vodka",
+      "is_perishable": false,
+      "updated_at": "2025-06-12T09:53:01Z"
+    }
+  }
+}
+
+<span class="cc">// Ownership check SQL</span>
+<span class="ck">SELECT</span> EXISTS(
+  <span class="ck">SELECT</span> 1 <span class="ck">FROM</span> user_device_links
+  <span class="ck">WHERE</span> user_id=$1 <span class="ck">AND</span> device_number=$2)`,
+ conn:['defteros','devices-api','products-api','categories-api','mybar-api'],
+ guide:`<div class="gs"><div class="gt">Station slot update flow</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Validate slot A–F, ownership via user_device_links</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Auto-create devices row if device_number not found</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">JSONB UPDATE: config["stations"]["A"] = product metadata</span></div></div></div>`},
+
+{id:'recipe-ratings-api',l:'Recipe Ratings API',cat:'backend',sz:4,rel:.8,
+ desc:'POST /api/v1/recipes/:id/rate (JWT) — submit 1–5 star rating. GET /api/v1/recipes/:id/reviews — paginated reviews with display_name + avatar. RecipeReview model: id, user_id, display_name, avatar_url, rating 1-5, comment, created_at. Ratings stored in recipe_ratings table. avg_rating and total_ratings on recipes table are aggregated (updated via trigger or batch). ListReviewsResponse: reviews[], page, per_page, total_count.',
+ code:`<span class="cm">POST</span> /api/v1/recipes/<span class="cn">:id</span>/rate
+body: { "rating": 1-5 }
+
+<span class="cm">GET</span>  /api/v1/recipes/<span class="cn">:id</span>/reviews
+      ?page=1&per_page=20
+
+RecipeReview {
+  id, user_id
+  display_name: string
+  avatar_url: string?
+  rating: 1-5
+  comment: string?
+  created_at: time.Time
+}`,
+ conn:['defteros','recipe-catalog-api','recipes-api'],
+ guide:`<div class="gs"><div class="gt">Aggregate ratings</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">avg_rating + total_ratings on recipes table are pre-aggregated</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Updated via DB trigger or batch job after INSERT into recipe_ratings</span></div></div></div>`},
+
+// ── Granular: Data / DB Schemas ────────────────────────────────
+
+{id:'db-mybar-schema',l:'MyBar DB Schema',cat:'data',sz:6,rel:1,
+ desc:'Three-layer V4.1 schema. CATEGORIES: id UUID PK, name VARCHAR(100), type CHECK(spirit|mixer|garnish|other), parent_category_id UUID FK self, icon VARCHAR(10), is_garnish BOOL, slug UNIQUE. 65 seeded rows. Indexes: slug, type, parent. PRODUCTS: id UUID PK, name VARCHAR(200), category_id UUID FK, brand VARCHAR(200), image_url TEXT, volume_ml INT, is_common BOOL. 250+ seeded rows. Indexes: category_id, name, is_common. MY_BAR_ITEMS: id UUID PK, user_id TEXT, product_id UUID FK, notes TEXT, added_at TIMESTAMPTZ. UNIQUE(user_id, product_id). Index on user_id.',
+ code:`<span class="cc">-- categories (65 rows seeded)</span>
+id UUID PK, name VARCHAR(100),
+type CHECK(spirit|mixer|garnish|other),
+parent_category_id UUID → categories(id),
+icon VARCHAR(10), is_garnish BOOL,
+slug VARCHAR(100) UNIQUE
+
+<span class="cc">-- products (250+ seeded)</span>
+id UUID PK, name VARCHAR(200),
+category_id UUID → categories,
+brand VARCHAR(200)?, image_url TEXT?,
+volume_ml INT?, is_common BOOL
+
+<span class="cc">-- my_bar_items</span>
+id UUID PK, user_id TEXT,
+product_id UUID → products,
+notes TEXT?, added_at TIMESTAMPTZ,
+UNIQUE(user_id, product_id)`,
+ conn:['mybar-api','station-slot-api','products-api','categories-api','postgres'],
+ guide:`<div class="gs"><div class="gt">Check for duplicate product in bar</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">UNIQUE(user_id, product_id) enforces at DB level</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Service catches "duplicate key" error and returns 409</span></div></div></div>`},
+
+{id:'db-recipes-schema',l:'Recipes DB Schema',cat:'data',sz:6,rel:1,
+ desc:'Normalized recipe catalog (migration 055). RECIPES: id UUID PK, name VARCHAR(255), description TEXT, category VARCHAR(100) (mixing technique: shaken/stirred/built), difficulty VARCHAR(50) (easy/medium/hard), prep_time_minutes INT DEFAULT 5, image_url TEXT, steps TEXT[], tags TEXT[], creator_id TEXT, creator_type (official|community), avg_rating NUMERIC(3,2), total_ratings INT, total_crafts INT, barsys_compatible BOOL, primary_spirit VARCHAR(100), moods TEXT[], is_featured BOOL, search_vector TSVECTOR (auto-trigger), source_cocktail_id UUID FK. RECIPE_INGREDIENTS: recipe_id FK, ingredient_id FK?, name VARCHAR(200), amount NUMERIC(8,2), unit VARCHAR(50), sort_order INT.',
+ code:`<span class="cc">-- recipes table (migration 055)</span>
+id UUID PK, name VARCHAR(255),
+category VARCHAR(100),   <span class="cc">// shaken|stirred|built</span>
+difficulty VARCHAR(50),  <span class="cc">// easy|medium|hard</span>
+prep_time_minutes INT DEFAULT 5,
+steps TEXT[], tags TEXT[],
+creator_type VARCHAR(50) DEFAULT <span class="cs">'official'</span>,
+avg_rating NUMERIC(3,2), total_crafts INT,
+barsys_compatible BOOL DEFAULT true,
+primary_spirit VARCHAR(100),
+moods TEXT[],
+search_vector TSVECTOR  <span class="cc">// auto-trigger</span>
+
+<span class="cc">-- recipe_ingredients table</span>
+recipe_id UUID FK → recipes CASCADE,
+ingredient_id UUID FK? → ingredients,
+name VARCHAR(200), amount NUMERIC(8,2),
+unit VARCHAR(50), sort_order INT`,
+ conn:['recipe-catalog-api','recipes-api','vector-embeddings','postgres','recipe-ratings-api'],
+ guide:`<div class="gs"><div class="gt">Full-text search implementation</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">search_vector = tsvector of name(A)+description(B)+category(C)+tags(D)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Auto-updated via trigger on INSERT/UPDATE</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Query: r.search_vector @@ plainto_tsquery('english', q)</span></div></div></div>`},
+
+{id:'db-mixlists-schema',l:'MixLists DB Schema',cat:'data',sz:5,rel:.9,
+ desc:'COCKTAIL_MIXLISTS: id UUID PK, name VARCHAR(255), description TEXT, author JSONB{name,establishment,year,bio,website}, tags JSONB[], image JSONB{url,alt,photographer}, deprecated_id INT, barsys_360_compatible BOOL DEFAULT true, is_deleted BOOL (soft delete), deleted_at TIMESTAMP. Indexes: GIN on tags, GIN on author, partial on is_deleted=false. COCKTAIL_MIXLIST_ITEMS: id UUID PK, mixlist_id FK CASCADE, cocktail_id FK CASCADE, position INT, UNIQUE(mixlist_id,cocktail_id). Indexes: mixlist_id, cocktail_id, position. Delta sync: updated_at >= timestamp.',
+ code:`<span class="cc">-- cocktail_mixlists</span>
+id UUID PK, name VARCHAR(255),
+description TEXT,
+author JSONB,     <span class="cc">// {name, establishment, bio}</span>
+tags JSONB,       <span class="cc">// ["seasonal","tequila"]</span>
+image JSONB,      <span class="cc">// {url, alt, photographer}</span>
+barsys_360_compatible BOOL DEFAULT true,
+is_deleted BOOL, deleted_at TIMESTAMP
+
+<span class="cc">-- cocktail_mixlist_items (junction)</span>
+id UUID PK,
+mixlist_id UUID FK → cocktail_mixlists CASCADE,
+cocktail_id UUID FK → cocktail_recipes CASCADE,
+position INT,
+UNIQUE(mixlist_id, cocktail_id)`,
+ conn:['mixlists-api','recipe-catalog-api','cocktail-legacy','postgres'],
+ guide:`<div class="gs"><div class="gt">Soft delete mixlist</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">SET is_deleted=true, deleted_at=NOW() (not hard delete)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Partial index WHERE is_deleted=false keeps queries fast</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Delta sync returns is_deleted=true entries so iOS can purge local cache</span></div></div></div>`},
+
+{id:'cocktail-legacy',l:'Cocktail Recipes (Legacy)',cat:'data',sz:4,rel:.8,
+ desc:'cocktail_recipes table — original recipe store, now dual-tracked alongside new normalized recipes table (migration 055). source_cocktail_id FK on recipes table links back. CocktailService still references cocktail_recipes for mixlist items (cocktail_mixlist_items.cocktail_id → cocktail_recipes). V4.1 migration ongoing: new recipes table is canonical; cocktail_recipes maintained for backwards compat. MySQL legacy DB also has older recipe data read via RecipeService dual-read pattern.',
+ code:`<span class="cc">// Dual-read pattern in RecipeService</span>
+<span class="ck">func</span> NewRecipeService(
+  pgDB *sql.DB,    <span class="cc">// PostgreSQL — canonical</span>
+  myDB *sql.DB,    <span class="cc">// MySQL — legacy fallback</span>
+) *RecipeService
+
+<span class="cc">// Recipe table lineage</span>
+cocktail_recipes          <span class="cc">← original</span>
+  ↓ source_cocktail_id FK
+recipes                   <span class="cc">← normalized (migration 055)</span>
+
+<span class="cc">// cocktail_mixlist_items still refs</span>
+cocktail_recipes, NOT recipes`,
+ conn:['mysql','postgres','recipe-catalog-api','mixlists-api','recipes-api'],
+ guide:`<div class="gs"><div class="gt">Which table to query?</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">New /api/v1/recipes* endpoints → recipes table (PostgreSQL)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">/cache/mixlists items → still references cocktail_recipes</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">During migration, both must stay in sync until cocktail_mixlist_items FK is migrated</span></div></div></div>`},
+
+{id:'availability-engine',l:'Availability Engine',cat:'data',sz:6,rel:1,
+ desc:'Server-side availableOnly filter + iOS local matching. SERVER: GET /recipes?availableOnly=true injects NOT EXISTS subquery. For each recipe_ingredient, checks user station JSONB config OR my_bar_items → products → categories (LOWER(cat.name) = LOWER(ingredient.name)). iOS CLIENT: isBarsys360RecipeCraftable() iterates recipe ingredients, exact case-insensitive match on category.primary + category.secondary against StationCleaningFlow array. No fuzzy matching — exact pair required. Perishable gate: updatedAt > 48h triggers cleaning modal.',
+ code:`<span class="cc">-- Server availableOnly subquery (simplified)</span>
+<span class="ck">NOT EXISTS</span> (
+  <span class="ck">SELECT</span> 1 <span class="ck">FROM</span> recipe_ingredients ri
+  <span class="ck">WHERE</span> ri.recipe_id = r.id
+  <span class="ck">AND</span> ri.ingredient_id <span class="ck">NOT IN</span> (
+    <span class="cc">-- from station JSONB</span>
+    <span class="ck">SELECT</span> ingredient_id <span class="ck">FROM</span> device_stations ds
+    <span class="ck">JOIN</span> user_devices ud <span class="ck">ON</span> ud.id = ds.device_id
+    <span class="ck">WHERE</span> ud.user_id = $1)
+  <span class="ck">AND NOT EXISTS</span> (
+    <span class="cc">-- from my_bar_items</span>
+    <span class="ck">SELECT</span> 1 <span class="ck">FROM</span> my_bar_items mbi
+    <span class="ck">JOIN</span> products p <span class="ck">ON</span> mbi.product_id = p.id
+    <span class="ck">JOIN</span> categories c <span class="ck">ON</span> p.category_id = c.id
+    <span class="ck">JOIN</span> ingredients i4 <span class="ck">ON</span> i4.id = ri.ingredient_id
+    <span class="ck">WHERE</span> mbi.user_id = $1
+    <span class="ck">AND</span> LOWER(c.name) = LOWER(i4.name)))`,
+ conn:['recipe-catalog-api','mybar-api','db-mybar-schema','ready-to-pour','sqlite-cache','db-recipes-schema'],
+ guide:`<div class="gs"><div class="gt">iOS vs server availability mismatch</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">iOS matches on category.primary + category.secondary pair</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Server matches on LOWER(category.name) = LOWER(ingredient.name)</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Discrepancies arise when category hierarchy (parent_category_id) is involved — server doesn't traverse hierarchy in availableOnly check</span></div></div></div>`},
+
+// ── Missing Backend Nodes ──────────────────────────────────────────────────
+
+{id:'auth-api',l:'Auth API',cat:'backend',sz:5,rel:1,
+ desc:'Phone OTP + Apple/Google SSO auth endpoints. POST /auth/send-code issues SMS via Ory self-service. POST /auth/verify-code returns RS256 JWT + refresh token. POST /auth/sso/apple and /auth/sso/google handle SIWA/Google tokens. POST /auth/logout invalidates Ory session. POST /auth/preferences saves onboarding answers. RATE_LIMIT_AUTH=5 req/min per IP enforced.',
+ code:`<span class="cc">// auth_flow_handler.go (app.go lines 432-438)</span>
+POST /api/v1/auth/send-code       <span class="cc">// SMS OTP → Ory</span>
+POST /api/v1/auth/verify-code     <span class="cc">// → RS256 JWT</span>
+POST /api/v1/auth/sso/apple       <span class="cc">// SIWA token</span>
+POST /api/v1/auth/sso/google      <span class="cc">// Google OAuth</span>
+POST /api/v1/auth/logout          <span class="cc">// revoke session</span>
+POST /api/v1/auth/refresh         <span class="cc">// rotate JWT</span>
+POST /api/v1/auth/token-exchange  <span class="cc">// Ory↔JWT swap</span>
+POST /api/v1/auth/preferences     <span class="cc">// onboarding prefs</span>
+POST /api/v1/users/me/agreements  <span class="cc">// T&amp;C accept</span>`,
+ conn:['ory','profile-api','jwt-middleware','ios-app','onboarding']},
+
+{id:'jwt-middleware',l:'JWT + Rate Limiter',cat:'backend',sz:4,rel:1,
+ desc:'RS256 JWT validation middleware protecting all /my/* routes. RequireAuth() validates Bearer token signed with JWT_RSA_PRIVATE_KEY. OptionalAuth() attaches user if present. Party mode uses separate HS256 symmetric guest tokens (PARTY_JWT_SECRET) via PartyOrGuestAuthMiddleware. Three-tier rate limiter: auth=5, write=30, read=100 req/min per IP via RATE_LIMIT_* env vars.',
+ code:`<span class="cc">// middleware/jwt_auth.go</span>
+<span class="ck">func</span> RequireAuth() echo.MiddlewareFunc
+<span class="ck">func</span> OptionalAuth() echo.MiddlewareFunc
+
+<span class="cc">// party: RS256 host OR HS256 guest</span>
+<span class="ck">func</span> PartyOrGuestAuthMiddleware() echo.MiddlewareFunc
+
+<span class="cc">// Rate limits (req/min per IP)</span>
+auth:  5   <span class="cc">// RATE_LIMIT_AUTH</span>
+write: 30  <span class="cc">// RATE_LIMIT_WRITE</span>
+read:  100 <span class="cc">// RATE_LIMIT_READ</span>`,
+ conn:['ory','defteros','auth-api','party-api']},
+
+{id:'delta-sync',l:'Delta Sync Cache',cat:'backend',sz:5,rel:1,
+ desc:'Incremental data sync — clients send timestamp, receive only records updated since. All endpoints use ?timestamp=<unix> param (not ?ts=). Registered routes: GET /cache/recipes?timestamp=, /cache/mixlists?timestamp=, /cache/profile, /cache/devices, /cache/stations, /cache/craft-sessions, /cache/reviews. cache_handler.go + cache_service.go. iOS stores per-resource timestamps in UserDefaults. Eliminates full-refetch on every app open.',
+ code:`<span class="cc">// cache_handler.go — ALL use ?timestamp=</span>
+GET /api/v1/cache/recipes?timestamp=&lt;unix&gt;
+GET /api/v1/cache/mixlists?timestamp=&lt;unix&gt;
+GET /api/v1/cache/profile
+GET /api/v1/cache/devices
+GET /api/v1/cache/stations
+GET /api/v1/cache/craft-sessions
+GET /api/v1/cache/reviews
+
+<span class="cc">// iOS: store last-sync per resource</span>
+UserDefaults.standard.set(
+  Date().timeIntervalSince1970,
+  forKey: <span class="cs">"recipes_last_sync"</span>
+)`,
+ conn:['recipes-api','mixlists-api','mybar-api','devices-api','profile-api','sqlite-cache','ios-app']},
+
+{id:'chat-history',l:'Chat History DB',cat:'data',sz:4,rel:1,
+ desc:'Bond AI conversation persistence. ACTIVE table is conversation_messages (role/content/conversation_id/user_id/created_at) — chat_history is legacy and no longer primary. conversation_messages uses session_id TEXT directly (no separate conversations table). chat_history_summary stores compressed session summaries injected as context on next session. chat_handler_ext.go exposes GET /chat/history and POST /chat/feedback. Indexed by user_id + session_id in PostgreSQL.',
+ code:`<span class="cc">-- chat_history</span>
+id         UUID PK
+user_id    TEXT NOT NULL
+session_id UUID NOT NULL
+role       TEXT CHECK(IN ('user','assistant'))
+content    TEXT
+created_at TIMESTAMPTZ
+
+<span class="cc">-- chat_history_summary</span>
+session_id UUID PK
+user_id    TEXT
+summary    TEXT   <span class="cc">-- injected as context</span>
+created_at TIMESTAMPTZ
+
+<span class="cc">// Exposed via chat_handler_ext.go</span>
+GET /api/v1/chat/history
+POST /api/v1/chat/feedback`,
+ conn:['bond-ai','chat-api','postgres','bond']},
+
+{id:'media-upload',l:'Media Upload (GCS)',cat:'backend',sz:4,rel:1,
+ desc:'GCS-backed media upload system. PUT /my/profile/picture handles multipart user avatar upload. Device docs also stored in GCS. Metadata tracked in media_storage table (bucket, path, content_type, size_bytes). GCP Storage Repository at repositories/gcp/storage_repository.go. Configurable via GOOGLE_STORAGE_BUCKET_NAME + GOOGLE_STORAGE_BASE_PATH. Returns CDN URL after upload.',
+ code:`<span class="cc">// storage_repository.go</span>
+<span class="ck">func</span> UploadMedia(ctx, bucket, path, reader) (url, err) {
+  obj := client.Bucket(bucket).Object(path)
+  wc  := obj.NewWriter(ctx)
+  io.Copy(wc, reader)
+  wc.Close()  <span class="cc">// returns CDN url</span>
+}
+
+<span class="cc">-- media_storage table</span>
+id, user_id, bucket, path,
+content_type, size_bytes, created_at
+
+PUT /api/v1/my/profile/picture`,
+ conn:['gcs','profile-api','devices-api','postgres']},
+
+{id:'party-websocket',l:'Party WebSocket Hub',cat:'backend',sz:4,rel:1,
+ desc:'Real-time WebSocket for party mode. GET /api/v1/party/sessions/:id/ws upgrades connection. PartyHub manages rooms: BroadcastToSession (all participants), BroadcastToGuest (targeted), BroadcastToHost. Events: party state, shake challenge results, leaderboard deltas, guest join/leave. Accepts both RS256 JWT (hosts) and HS256 guest tokens. Global + city-based leaderboards.',
+ code:`<span class="cc">// party_handler.go — PartyHub</span>
+GET /api/v1/party/sessions/:id/ws
+
+<span class="ck">type</span> PartyHub <span class="ck">struct</span> {
+  sessions map[string]*PartySession
+  mu       sync.RWMutex
+}
+
+hub.BroadcastToSession(sessionID, event)
+hub.BroadcastToGuest(sessionID, guestID, event)
+hub.BroadcastToHost(sessionID, event)
+
+<span class="cc">// WS event types</span>
+party_state_update | challenge_score
+leaderboard_delta  | guest_joined | shake_result`,
+ conn:['party-api','websocket-hub','ios-app']},
+
+{id:'pubsub-topics',l:'Pub/Sub Topics',cat:'infra',sz:4,rel:1,
+ desc:'Four Google Pub/Sub topics: UserData (auth + profile changes, consumed by analytics), RemoveUser (GDPR deletion cascade across all services), StationConfig (station slot updates to downstream consumers), FullRecipe (recipe create/update events for vector embedding pipeline). All names via GOOGLE_PUBSUB_TOPIC_* env vars. Repository: repositories/gcp/pubsub_repository.go.',
+ code:`<span class="cc">// pubsub_repository.go</span>
+TopicUserData      = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_USER_DATA"</span>)
+TopicRemoveUser    = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_REMOVE_USER"</span>)
+TopicStationConfig = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_STATION_CONFIG"</span>)
+TopicFullRecipe    = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_FULL_RECIPE"</span>)
+
+<span class="cc">// Publish pattern</span>
+<span class="ck">func</span> PublishFullRecipe(ctx context.Context,
+                        r *Recipe) error {
+  data, _ := json.Marshal(r)
+  topic.Publish(ctx, &pubsub.Message{Data: data})
+}`,
+ conn:['pubsub','recipes-api','profile-api','devices-api','station-slot-api','vector-embeddings']},
+
+// ── Missing iOS Nodes ──────────────────────────────────────────────────────
+
+{id:'coordinator-nav',l:'Coordinator Navigation',cat:'ios',sz:5,rel:1,
+ desc:'Full Coordinator pattern IS implemented — 10 coordinator files: Coordinator.swift (protocol base), AppCoordinator, AuthCoordinator, StoryboardCoordinator, RecipesCoordinator, BarBotCoordinator, CraftingCoordinator, ControlCenterCoordinator, DeviceCoordinator, MakeMyOwnCoordinator. Each conforms to Coordinator protocol with start() and childCoordinators[]. AppCoordinator at root checks Keychain session_token to route to AuthCoordinator vs MainTabBarCoordinator. UIViewController extensions (Navigation, LegacyNavigation, DeepLinks, Alerts) supplement coordinator navigation.',
+ code:`<span class="cc">// Coordinator.swift — base protocol</span>
+<span class="ck">protocol</span> Coordinator: AnyObject {
+  <span class="ck">var</span> childCoordinators: [Coordinator] { get set }
+  <span class="ck">var</span> navigationController: UINavigationController { get }
+  <span class="ck">func</span> start()
+}
+
+<span class="cc">// 10 coordinators: App, Auth, Storyboard,</span>
+<span class="cc">// Recipes, BarBot, Crafting, ControlCenter,</span>
+<span class="cc">// Device, MakeMyOwn + base StoryboardCoordinator</span>
+<span class="ck">class</span> AppCoordinator: Coordinator {
+  <span class="ck">func</span> start() {
+    <span class="ck">if</span> KeychainHelper.get(<span class="cs">"session_token"</span>) != nil {
+      showMain()
+    } <span class="ck">else</span> { showAuth() }
+  }
+}`,
+ conn:['ios-app','auth-flow','barbot','crafting','device-pairing-ui','recipe-browse','mixlists','deep-links']},
+
+{id:'ble-manager',l:'BLE Manager',cat:'ios',sz:5,rel:1,
+ desc:'BleManager singleton (sharedManager) manages full CoreBluetooth lifecycle. Implements CBCentralManagerDelegate + CBPeripheralDelegate in-class. Key methods: startBleScan(), stopBleScan(), connect(), disconnect(), isBarsys360Connected(), isCoasterConnected(), writeCommand(). Commands are constructed inline and sent via writeCommand() as UTF-8 Data to the UART Write characteristic. BleManagerDelegate.swift provides the delegate protocol used by VCs to receive events. No separate BleCommandBuilder class.',
+ code:`<span class="cc">// BleManager.swift</span>
+<span class="ck">class</span> BleManager: NSObject,
+  CBCentralManagerDelegate, CBPeripheralDelegate {
+  <span class="ck">static let</span> sharedManager = BleManager()
+  <span class="ck">var</span> connectedPeripheral: CBPeripheral?
+
+  <span class="ck">func</span> writeCommand(_ cmd: String) {
+    <span class="ck">guard let</span> data = cmd.data(using: .utf8)
+    peripheral?.writeValue(data, for: writeChar,
+      type: .withoutResponse)
+  }
+  <span class="ck">func</span> isBarsys360Connected() -> Bool
+  <span class="ck">func</span> isCoasterConnected() -> Bool
+}`,
+ conn:['ble-hardware','ble-opcodes','crafting','stations-menu-vc','barbot','coordinator-nav','control-center']},
+
+{id:'speak-easy-ws',l:'Speak Easy WebSocket',cat:'ios',sz:4,rel:1,
+ desc:'SocketManager.swift in Helpers/SocketManager/ and SocketDelegates.swift provide WebSocket infrastructure for the Speak Easy smart speaker product. AppStateManager handles app state for reconnection. Actual BarBot AI uses SSE via BarBotSSEClient.swift (URLSession.bytes) — not WebSocket. Starscream library and bouncer.barsys.com endpoint are planned for Speak Easy product; verify Podfile for current integration status.',
+ code:`<span class="cc">// SocketManager.swift — Starscream WebSocket</span>
+<span class="ck">import</span> Starscream
+
+<span class="ck">class</span> SocketManager: WebSocketDelegate {
+  <span class="ck">var</span> socket: WebSocket?
+
+  <span class="ck">func</span> connect() {
+    <span class="ck">var</span> req = URLRequest(url: URL(
+      string: <span class="cs">"wss://bouncer.barsys.com/api/v1/ws/user/"</span>)!)
+    socket = WebSocket(request: req)
+    socket?.delegate = self
+    socket?.connect()
+  }
+  <span class="ck">func</span> didReceive(event: WebSocketEvent, ...)
+}
+<span class="cc">// AppStateManager: handles bg/fg reconnect</span>`,
+ conn:['ios-app','coordinator-nav','barbot','websocket-hub']},
+
+{id:'local-db',l:'Local SQLite DB',cat:'ios',sz:5,rel:1,
+ desc:'DBManager singleton wraps raw sqlite3 C API (no FMDB or GRDB). All methods in single DBManager class with DBHelper, DBProvider, DBQueries helpers. Core methods: insertToDatabase(), fetchMixlists(), fetchRecipes(), fetchFavourites(). DBQueries.swift holds SQL string constants. DBHelper.swift handles db file init. Recipes and mixlists cached after API fetch; read locally on subsequent access. Sync timestamps stored in UserDefaults.',
+ code:`<span class="cc">// DBManager.swift — raw sqlite3</span>
+<span class="ck">class</span> DBManager {
+  <span class="ck">static let</span> shared = DBManager()
+  <span class="ck">private var</span> db: OpaquePointer?
+
+  <span class="ck">func</span> open() {
+    sqlite3_open(DBHelper.dbPath, &amp;db)
+  }
+  <span class="ck">func</span> insertToDatabase(_ recipe: Recipe)
+  <span class="ck">func</span> fetchRecipes() -> [Recipe]
+  <span class="ck">func</span> fetchMixlists() -> [Mixlist]
+  <span class="ck">func</span> fetchFavourites() -> [Recipe]
+}
+<span class="cc">// DBQueries.swift holds all SQL constants</span>`,
+ conn:['sqlite-cache','recipe-browse','mixlists','my-bar','delta-sync','favorites-drinks','recipe-model-ios']},
+
+{id:'analytics-layer',l:'Analytics + Braze',cat:'ios',sz:4,rel:1,
+ desc:'Dual analytics: TrackEventsClass fires 50+ custom events (TrackEventName enum) to Defteros /analytics endpoint; Braze SDK initialized in AppDelegate with API key d5beb9b6-9499-4213-b4dd-f36322e1d444 and endpoint sdk.iad-07.braze.com for push + in-app messaging. AnalyticsConsentManager handles GDPR/CCPA consent gates before event firing. IPAddressManager (Swift actor, thread-safe) fetches public IP for geo-tagging events. Firebase Analytics also integrated for crash reporting.',
+ code:`<span class="cc">// TrackEventsClass.swift — 50+ events</span>
+<span class="ck">enum</span> TrackEventName: String {
+  <span class="ck">case</span> recipeViewed = <span class="cs">"recipe_viewed"</span>
+  <span class="ck">case</span> drinkCrafted = <span class="cs">"drink_crafted"</span>
+  <span class="ck">case</span> barbotOpened = <span class="cs">"barbot_opened"</span>
+  <span class="cc">// 47+ more events...</span>
+}
+
+<span class="cc">// AppDelegate: Braze init</span>
+<span class="ck">let</span> braze = Braze(configuration: .init(
+  apiKey: <span class="cs">"d5beb9b6-9499-4213-b4dd-f36322e1d444"</span>,
+  endpoint: <span class="cs">"sdk.iad-07.braze.com"</span>))
+
+<span class="cc">// AnalyticsConsentManager: GDPR/CCPA gate</span>
+<span class="ck">class</span> AnalyticsConsentManager {
+  <span class="ck">static func</span> hasConsent() -> Bool
+  <span class="ck">static func</span> requestConsent(completion: ...)
+}`,
+ conn:['ios-app','push-notifications-api','profile-mgmt','auth-flow']},
+
+{id:'deep-links',l:'Deep Links',cat:'ios',sz:4,rel:1,
+ desc:'URL scheme barsysapp:// (confirmed in Info.plist for bundle com.llc.barsysapp). Deep-link handling is NOT yet implemented — no openURL handler in AppDelegate, no openURLContexts in SceneDelegate, no UIViewController+DeepLinks.swift file. The URL scheme is declared infrastructure only with no routing logic in the current codebase.',
+ code:`<span class="cc">// Info.plist</span>
+CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
+
+<span class="cc">// SceneDelegate.swift</span>
+<span class="ck">func</span> scene(_ scene: UIScene,
+     openURLContexts ctx: Set&lt;UIOpenURLContext&gt;) {
+  <span class="ck">guard let</span> url = ctx.first?.url
+  <span class="ck">else</span> { <span class="ck">return</span> }
+  <span class="cc">// route to appropriate VC</span>
+}
+
+<span class="cc">// UIViewController+DeepLinks.swift</span>
+<span class="cc">// extension UIViewController { deepLink helpers }</span>`,
+ conn:['ios-app','coordinator-nav','recipe-browse','mixlists','barbot']},
+
+{id:'security-layer',l:'Security Layer',cat:'ios',sz:4,rel:1,
+ desc:'Auth tokens stored in KEYCHAIN via KeychainHelper.swift (11 keys). SSL pinning IS implemented via SSLPinningManager.swift using SHA256 SPKI certificate pinning for api-ng.barsys.com (hash: OdSlmQD9NWJh4EbcOHBxkhygPwNSwA9Q91eounfbcoE=) and ci.bond-mvp1.barsys.com (hash: kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=). ENABLE_STATIC_AUTH_TOKEN env var enables dev auth bypass in non-production builds. URLSession delegate intercepts didReceive challenge for pinning enforcement.',
+ code:`<span class="cc">// SSLPinningManager.swift — SHA256 SPKI pinning</span>
+<span class="ck">class</span> SSLPinningManager {
+  <span class="ck">static let</span> pinnedHashes = [
+    <span class="cs">"OdSlmQD9NWJh4EbcOHBxkhygPwNSwA9Q91eounfbcoE="</span>, <span class="cc">// api-ng</span>
+    <span class="cs">"kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4="</span>  <span class="cc">// bond</span>
+  ]
+  <span class="ck">func</span> urlSession(_ s: URLSession,
+    didReceive ch: URLAuthenticationChallenge,
+    completionHandler: ...) {
+    <span class="cc">// extract SPKI hash, compare against pinnedHashes</span>
+  }
+}`,
+ conn:['ios-app','auth-flow','defteros','local-db']},
+
+{id:'control-center',l:'Control Center',cat:'ios',sz:5,rel:1,
+ desc:'ControlCenterViewController/ViewModel is the device management dashboard entered after pairing. Shows station grid (up to 6 slots), BLE connection status, pour history shortcut. ControlCenterCoordinator manages sub-flows: StationsMenuVC (slot config), StationCleaningFlowVC (guided clean), DeviceRenameVC. ControlCenterModel tracks live slot states. Primary hub for all hardware interaction beyond simple crafting.',
+ code:`<span class="cc">// ControlCenterViewModel.swift</span>
+<span class="ck">class</span> ControlCenterViewModel {
+  <span class="ck">@Published var</span> stations: [StationSlot] = []
+  <span class="ck">@Published var</span> bleState: BLEState = .disconnected
+
+  <span class="ck">func</span> refreshStations() {
+    StationsServiceApi.shared.getStations {
+      self.stations = $0
+    }
+  }
+  <span class="ck">func</span> triggerClean(slot: Int) {
+    BleManager.shared.send(
+      BleCommandBuilder.buildCleanCommand(slot))
+  }
+}`,
+ conn:['stations-menu-vc','station-cleaning','device-pairing-ui','ble-manager','barbot','coordinator-nav','station-slot-api']},
+
+{id:'drink-complete',l:'Drink Complete Flow',cat:'ios',sz:4,rel:1,
+ desc:'DrinkCompleteViewModel handles post-crafting UX. Animates completion screen with drink image + name. Shows Add to Favorites and social share sheet. Triggered by CraftingCoordinator.showDrinkComplete() when BleManager receives the DATA Flushed BLE response (which follows opcode 221,405 remove-glass signal). No rateRecipe() method or BarBotHistoryManager in current codebase.',
+ code:`<span class="cc">// DrinkCompleteViewModel.swift</span>
+<span class="ck">class</span> DrinkCompleteViewModel {
+  <span class="ck">func</span> submitRating(_ stars: Int) {
+    RecipeApiService.shared
+      .rateRecipe(id: recipe.id, rating: stars)
+    BarBotHistoryManager.shared.append(recipe)
+  }
+  <span class="ck">func</span> addToFavorites() {
+    FavoriteRecipeApiService.shared
+      .addFavorite(recipe.id) { _ in }
+  }
+}
+<span class="cc">// Trigger: BLE opcode 221,405 (remove glass)</span>`,
+ conn:['crafting','recipe-ratings-api','barbot-history','favorites-drinks','ble-opcodes','ble-manager']},
+
+{id:'coaster-device-support',l:'Coaster Device Support',cat:'ios',sz:4,rel:1,
+ desc:'BleManager supports two Barsys device types beyond BarBot 360: Barsys Coaster (smart coaster that tracks glass placement) and Barsys Shaker (automated cocktail shaker). isCoasterConnected() / isShaker() methods in BleManager distinguish device type post-pairing. CoasterDeviceVC handles coaster-specific setup flow. BLE service UUID differs per device type — discovery filters by supported service UUIDs. Both device types share same Nordic UART UUIDs + opcodes; distinction is by peripheral name prefix (barsys_c vs barsys_360), not by opcode set.',
+ code:`<span class="cc">// BleManager.swift — multi-device support</span>
+<span class="ck">func</span> isCoasterConnected() -> Bool {
+  connectedPeripheral?.services?
+    .contains { $0.uuid == coasterServiceUUID }
+    ?? <span class="ck">false</span>
+}
+<span class="ck">func</span> isBarsys360Connected() -> Bool {
+  connectedPeripheral?.services?
+    .contains { $0.uuid == barsys360ServiceUUID }
+    ?? <span class="ck">false</span>
+}
+<span class="cc">// Device types: Barsys360, Coaster, Shaker</span>`,
+ conn:['ble-manager','ble-hardware','device-pairing-ui','crafting','control-center']},
+
+{id:'custom-recipe-creation',l:'Custom Recipe Creation',cat:'ios',sz:4,rel:1,
+ desc:'MakeMyOwnViewController + MakeMyOwnCoordinator allow users to build custom cocktail recipes from scratch. Users select base spirits, mixers, and garnishes from their MyBar inventory. MakeMyOwnViewModel validates ingredient combinations and calculates pour volumes for BarBot 360 compatibility. Finished recipes can be saved to MyRecipes (POST /my/recipes) or crafted immediately. MakeMyOwnCoordinator is one of the 10 confirmed coordinator classes.',
+ code:`<span class="cc">// MakeMyOwnCoordinator.swift</span>
+<span class="ck">class</span> MakeMyOwnCoordinator: Coordinator {
+  <span class="ck">func</span> start() {
+    <span class="ck">let</span> vc = MakeMyOwnViewController()
+    vc.viewModel = MakeMyOwnViewModel()
+    navigationController.pushViewController(vc,
+      animated: <span class="ck">true</span>)
+  }
+}
+<span class="cc">// Saves to POST /api/v1/my/recipes</span>`,
+ conn:['ios-app','coordinator-nav','my-bar','recipes-api','crafting','recipe-model-ios']},
+
+{id:'web-content-viewer',l:'Web Content Viewer',cat:'ios',sz:3,rel:.85,
+ desc:'WebViewController wraps WKWebView to display in-app web content for Terms & Conditions, Privacy Policy, and legal pages. Loaded from CDN or barsys.com URLs. Handles navigation events to prevent external redirects. Used from onboarding (T&C acceptance flow), Settings/Profile for legal docs, and any deep-linked legal content. Simple WKNavigationDelegate implementation — no JavaScript bridging required.',
+ code:`<span class="cc">// WebViewController.swift</span>
+<span class="ck">class</span> WebViewController: UIViewController {
+  <span class="ck">var</span> webView = WKWebView()
+  <span class="ck">var</span> urlString: String = <span class="cs">""</span>
+
+  <span class="ck">override func</span> viewDidLoad() {
+    <span class="ck">super</span>.viewDidLoad()
+    <span class="ck">if let</span> url = URL(string: urlString) {
+      webView.load(URLRequest(url: url))
+    }
+  }
+}
+<span class="cc">// Used for T&C, Privacy Policy pages</span>`,
+ conn:['ios-app','coordinator-nav','onboarding','profile-mgmt']},
+
+{id:'event-tracking-system',l:'Event Tracking System',cat:'ios',sz:4,rel:1,
+ desc:'Centralized event tracking via TrackEventName enum with 74 named events covering the full user journey: onboarding (signup_started, otp_verified), discovery (recipe_viewed, search_performed), crafting (craft_started, drink_crafted, craft_abandoned), social (mixlist_shared, friend_added), hardware (device_paired, ble_connected, pour_started). All events routed through TrackEventsClass which POSTs to Defteros /analytics and also logs to Braze and Firebase. Each event carries user_id, session_id, timestamp, and context properties.',
+ code:`<span class="cc">// TrackEventName.swift — full enum</span>
+<span class="ck">enum</span> TrackEventName: String {
+  <span class="ck">case</span> signupStarted    = <span class="cs">"signup_started"</span>
+  <span class="ck">case</span> otpVerified      = <span class="cs">"otp_verified"</span>
+  <span class="ck">case</span> recipeViewed     = <span class="cs">"recipe_viewed"</span>
+  <span class="ck">case</span> craftStarted     = <span class="cs">"craft_started"</span>
+  <span class="ck">case</span> drinkCrafted     = <span class="cs">"drink_crafted"</span>
+  <span class="ck">case</span> devicePaired     = <span class="cs">"device_paired"</span>
+  <span class="cc">// 44+ more events...</span>
+}`,
+ conn:['analytics-layer','ios-app','crafting','recipe-browse','barbot','device-pairing-ui','onboarding']},
+
+{id:'analytics-consent-management',l:'Analytics Consent',cat:'ios',sz:3,rel:.9,
+ desc:'AnalyticsConsentManager (enum, not class) enforces GDPR/CCPA consent. Key property: isConsentGranted (static var — checks UserDefaults via UserDefaultsClass). TrackEventsClass guards every event: guard AnalyticsConsentManager.isConsentGranted else { return }. Also exposes hasPromptBeenShown, isTrackingAuthorized, isIPCollectionPermitted, setConsent(_ granted: Bool), requestConsentIfNeeded(), resetConsent().',
+ code:`<span class="cc">// AnalyticsConsentManager.swift</span>
+<span class="ck">class</span> AnalyticsConsentManager {
+  <span class="ck">enum</span> ConsentState { <span class="ck">case</span> notAsked, granted, denied }
+
+  <span class="ck">static func</span> hasConsent() -> Bool {
+    UserDefaults.standard.string(
+      forKey: <span class="cs">"analytics_consent"</span>) == <span class="cs">"granted"</span>
+  }
+  <span class="ck">static func</span> setConsent(_ state: ConsentState) {
+    UserDefaults.standard.set(state.rawValue,
+      forKey: <span class="cs">"analytics_consent"</span>)
+  }
+}`,
+ conn:['analytics-layer','ios-app','onboarding','profile-mgmt']},
+
+{id:'image-picker-upload',l:'Image Picker + Upload',cat:'ios',sz:3,rel:.85,
+ desc:'ImagePickerViewController wraps UIImagePickerController for camera + photo library access. Used in two flows: (1) profile picture — user selects/captures photo, compressed to JPEG, uploaded via PUT /my/profile/picture to GCS via Defteros media-upload service; (2) ingredient scanning — UploadIngredientsImage flow sends image to barbot-ml for bottle/label detection. Image compression and aspect ratio normalization applied before upload. Camera permission handled via NSCameraUsageDescription.',
+ code:`<span class="cc">// ImagePickerViewController.swift</span>
+<span class="ck">class</span> ImagePickerViewController:
+  UIImagePickerControllerDelegate {
+
+  <span class="ck">func</span> imagePickerController(_ picker:
+    UIImagePickerController,
+    didFinishPickingMediaWithInfo info: ...) {
+    <span class="ck">guard let</span> img = info[.originalImage] <span class="ck">as?</span> UIImage
+    <span class="ck">else</span> { <span class="ck">return</span> }
+    uploadImage(img.jpegData(compressionQuality: 0.8))
+  }
+}`,
+ conn:['ios-app','profile-mgmt','media-upload','barbot-ml','scanner-api']},
+
+{id:'video-playback',l:'Video Playback',cat:'ios',sz:3,rel:.8,
+ desc:'VideoPlayerManager (actual class name) handles in-app video. Uses AVPlayer + AVPlayerLayer embedded in UIView — not AVPlayerViewController. Used in TutorialViewController (recipe walkthroughs) and DevicePairedViewController (device onboarding). BarBot onboarding uses bundled MP4 assets from app bundle. User-initiated play only. No video_url field exists on Recipe model.',
+ code:`<span class="cc">// VideoManager.swift</span>
+<span class="ck">class</span> VideoManager {
+  <span class="ck">static func</span> play(url: URL,
+                   from vc: UIViewController) {
+    <span class="ck">let</span> player = AVPlayer(url: url)
+    <span class="ck">let</span> playerVC = AVPlayerViewController()
+    playerVC.player = player
+    vc.present(playerVC, animated: <span class="ck">true</span>) {
+      player.play()
+    }
+  }
+}
+<span class="cc">// recipe.video_url → CDN link</span>`,
+ conn:['ios-app','recipe-browse','device-pairing-ui','barbot']}
+
+];
+
+
+const CAT_COLORS = {
+  ios:'var(--c-ios)',backend:'var(--c-backend)',data:'var(--c-data)',
+  infra:'var(--c-infra)',ble:'var(--c-ble)'
+};
+const CAT_RAW_DARK={ios:'#4A9EE8',backend:'#F0B840',data:'#C46EC8',infra:'#3EC996',ble:'#3ECFCF'};
+const CAT_RAW_LIGHT={ios:'#1a6eaa',backend:'#b07c10',data:'#8a3a90',infra:'#1a8c60',ble:'#1a8c8c'};
+const CAT_RAW={...CAT_RAW_DARK};
+const CAT_LABELS = {
+  ios:'iOS App',backend:'Backend API',data:'Data & Models',
+  infra:'Infrastructure',ble:'BLE / Hardware'
+};
+const CAT_SHAPE = {ios:'hex',backend:'diamond',data:'hex',infra:'tri',ble:'diamond'};
+const CAT_ORDER = ['ios','backend','data','infra','ble'];
+const SHAPE_CHAR = {hex:'⬡',diamond:'◇',tri:'△'};
+
+const GH = 'https://github.com/barsysindia/barsys-ai-app-ios/blob/main/';
+let dark=true, filt='all', hov=null, sel=null;
+let cam={x:0,y:0}, zoom=1, dragging=false;
+let viewMode='graph';
+
+const cv=document.getElementById('cv');
+const cx=cv.getContext('2d');
+let W,H,dpr;
+
+function resize(){
+  W=innerWidth; H=innerHeight-40; dpr=devicePixelRatio||1;
+  cv.width=W*dpr; cv.height=H*dpr;
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+  cx.setTransform(dpr,0,0,dpr,0,0);
+  const mc=document.getElementById('mmc');
+  mc.width=140*dpr; mc.height=90*dpr;
+  mc.style.width='140px'; mc.style.height='90px';
+  mc.getContext('2d').setTransform(dpr,0,0,dpr,0,0);
+}
+resize(); addEventListener('resize',resize);
+
+const nodes=[],edges=[],nodeMap={};
+N.forEach((n,i)=>{
+  const cats=[...new Set(N.map(x=>x.cat))];
+  const catIdx=cats.indexOf(n.cat);
+  const catNodes=N.filter(x=>x.cat===n.cat);
+  const idxInCat=catNodes.indexOf(n);
+  const catAngle=(catIdx/cats.length)*Math.PI*2-Math.PI/2;
+  const spread=300+catNodes.length*20;
+  const subAngle=catAngle+(idxInCat-catNodes.length/2)*0.25;
+  const r=spread+idxInCat*30;
+  const node={id:n.id,n:n,cat:n.cat,
+    x:Math.cos(subAngle)*r+(Math.random()-0.5)*60,
+    y:Math.sin(subAngle)*r+(Math.random()-0.5)*60,
+    vx:0,vy:0,visible:true};
+  nodes.push(node); nodeMap[n.id]=node;
+});
+N.forEach(n=>{
+  if(!n.conn)return;
+  n.conn.forEach(tid=>{
+    if(nodeMap[tid]&&nodeMap[n.id]){
+      const ex=edges.some(e=>(e.source.id===n.id&&e.target.id===tid)||(e.source.id===tid&&e.target.id===n.id));
+      if(!ex)edges.push({source:nodeMap[n.id],target:nodeMap[tid]});
+    }
+  });
+});
+document.getElementById('st').textContent=nodes.length+' NODES / '+edges.length+' EDGES';
+
+// Filter bar
+const fb=document.getElementById('fb');
+const cats=['all',...new Set(N.map(n=>n.cat))];
+cats.forEach(c=>{
+  const b=document.createElement('button');
+  b.className='fp'+(c==='all'?' on':'');
+  b.textContent=c==='all'?'All':(CAT_LABELS[c]||c);
+  b.onclick=()=>{
+    filt=c;
+    document.querySelectorAll('.fp').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    nodes.forEach(n=>n.visible=(c==='all'||n.cat===c));
+    const ve=edges.filter(e=>e.source.visible&&e.target.visible);
+    document.getElementById('st').textContent=nodes.filter(n=>n.visible).length+' NODES / '+ve.length+' EDGES';
+  };
+  fb.appendChild(b);
+});
+
+// View switching
+function switchView(mode){
+  viewMode=mode;
+  const isDir=(mode==='directory');
+  cv.style.display=isDir?'none':'';
+  document.getElementById('mm').style.display=isDir?'none':'';
+  document.getElementById('fb').style.display=isDir?'none':'';
+  document.getElementById('zoom-ctrl').style.display=isDir?'none':'';
+  document.getElementById('btn-reset').textContent=isDir?'RESET':'RESET';
+  if(isDir){
+    document.getElementById('dir-view').classList.add('on');
+    buildDirectoryView();
+  } else {
+    document.getElementById('dir-view').classList.remove('on');
+    document.getElementById('dir-search-input').value='';
+  }
+  document.getElementById('tab-graph').classList.toggle('active',!isDir);
+  document.getElementById('tab-dir').classList.toggle('active',isDir);
+}
+
+function handleReset(){
+  if(viewMode==='graph') autoFit();
+  else { document.getElementById('dir-search-input').value=''; filterDirectory(''); }
+}
+
+// Build directory view
+function buildDirectoryView(){
+  // Nav sidebar
+  const navCats=document.getElementById('dir-nav-cats');
+  navCats.innerHTML='';
+  CAT_ORDER.forEach(cat=>{
+    const catNodes=N.filter(n=>n.cat===cat);
+    const col=CAT_RAW[cat];
+    const shape=CAT_SHAPE[cat];
+    const div=document.createElement('div');
+    div.className='dir-nav-item';
+    div.id='nav-'+cat;
+    div.innerHTML=
+      '<span class="dir-nav-shape" style="color:'+col+'">'+SHAPE_CHAR[shape]+'</span>'+
+      '<span class="dir-nav-label">'+CAT_LABELS[cat]+'</span>'+
+      '<span class="dir-nav-count">'+catNodes.length+'</span>';
+    div.onclick=()=>scrollToSection(cat);
+    navCats.appendChild(div);
+  });
+  document.getElementById('dir-nav-total').textContent=N.length+' NODES · '+edges.length+' EDGES';
+
+  // Main content
+  const main=document.getElementById('dir-main');
+  let html='';
+  CAT_ORDER.forEach(cat=>{
+    const catNodes=N.filter(n=>n.cat===cat);
+    if(!catNodes.length)return;
+    const col=CAT_RAW[cat];
+    const shape=CAT_SHAPE[cat];
+    html+='<div class="dir-section" id="dir-sec-'+cat+'">';
+    html+='<div class="dir-sec-hdr">'+
+      '<div class="dir-sec-bar" style="background:'+col+'"></div>'+
+      '<span class="dir-sec-name">'+CAT_LABELS[cat].toUpperCase()+'</span>'+
+      '<span class="dir-sec-count">'+catNodes.length+' NODES</span>'+
+      '</div>';
+
+    catNodes.forEach(n=>{
+      const connEdges=edges.filter(e=>(e.source.id===n.id||e.target.id===n.id)&&e.source.visible&&e.target.visible);
+      const connCount=connEdges.length;
+      const connIds=n.conn||[];
+      let tagHtml=connIds.slice(0,3).map(c=>{
+        const t=N.find(x=>x.id===c);
+        return t?'<span class="dct" onclick="selectNode(\''+c+'\');event.stopPropagation()">'+t.l+'</span>':'';
+      }).join('');
+      if(connIds.length>3) tagHtml+='<span class="dct-more">+'+( connIds.length-3)+'</span>';
+
+      const desc=n.desc?(n.desc.length>130?n.desc.substring(0,130)+'…':n.desc):'';
+      const nodeCol=col;
+
+      html+='<div class="dir-node" id="dnode-'+n.id+'" onclick="selectNode(\''+n.id+'\')">'+
+        '<div class="dir-node-l">'+
+          '<span class="dir-shape-icon" style="color:'+nodeCol+'">'+SHAPE_CHAR[shape]+'</span>'+
+          '<div class="dir-node-meta">'+
+            '<div class="dir-node-name" style="color:'+nodeCol+'">'+n.l+'</div>'+
+            '<div class="dir-node-id">'+n.id+'</div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="dir-node-desc">'+desc+'</div>'+
+        '<div class="dir-node-r">'+
+          '<div class="dir-conn-count">'+connCount+' connections</div>'+
+          '<div class="dir-conn-tags">'+tagHtml+'</div>'+
+        '</div>'+
+      '</div>';
+    });
+    html+='</div>';
+  });
+  main.innerHTML=html;
+
+  // Intersection observer to highlight active nav item
+  const io=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      const cat=e.target.id.replace('dir-sec-','');
+      const navEl=document.getElementById('nav-'+cat);
+      if(navEl) navEl.classList.toggle('active',e.isIntersecting);
+    });
+  },{root:main,threshold:0.1});
+  document.querySelectorAll('.dir-section').forEach(s=>io.observe(s));
+}
+
+function scrollToSection(cat){
+  const el=document.getElementById('dir-sec-'+cat);
+  if(el) el.scrollIntoView({behavior:'smooth'});
+}
+
+function filterDirectory(q){
+  const ql=q.toLowerCase().trim();
+  let visCount=0;
+  document.querySelectorAll('.dir-node').forEach(row=>{
+    const id=row.id.replace('dnode-','');
+    const n=N.find(x=>x.id===id);
+    if(!n){return;}
+    const match=!ql||
+      n.l.toLowerCase().includes(ql)||
+      n.id.toLowerCase().includes(ql)||
+      (n.desc&&n.desc.toLowerCase().includes(ql))||
+      (n.cat&&CAT_LABELS[n.cat]&&CAT_LABELS[n.cat].toLowerCase().includes(ql));
+    row.classList.toggle('hidden',!match);
+    if(match) visCount++;
+  });
+  // Show/hide empty sections
+  CAT_ORDER.forEach(cat=>{
+    const sec=document.getElementById('dir-sec-'+cat);
+    if(!sec)return;
+    const anyVis=[...sec.querySelectorAll('.dir-node')].some(r=>!r.classList.contains('hidden'));
+    sec.style.display=anyVis?'':'none';
+  });
+  document.getElementById('dir-nav-total').textContent=
+    (ql?visCount+' results':N.length+' NODES')+' · '+edges.length+' EDGES';
+}
+
+// Physics
+function tick(){
+  const repulsion=-1600,linkDist=220,linkStr=0.003,damp=0.88,centerGrav=0.006;
+  nodes.forEach(n=>{if(!n.visible)return;n.vx-=n.x*centerGrav;n.vy-=n.y*centerGrav;});
+  const vis=nodes.filter(n=>n.visible);
+  for(let i=0;i<vis.length;i++)for(let j=i+1;j<vis.length;j++){
+    const a=vis[i],b=vis[j];
+    let dx=b.x-a.x,dy=b.y-a.y;
+    const d2=dx*dx+dy*dy,dist=Math.sqrt(d2)||1;
+    const f=repulsion/d2,fx=(dx/dist)*f,fy=(dy/dist)*f;
+    a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy;
+  }
+  edges.forEach(e=>{
+    if(!e.source.visible||!e.target.visible)return;
+    let dx=e.target.x-e.source.x,dy=e.target.y-e.source.y;
+    const dist=Math.sqrt(dx*dx+dy*dy)||1,f=(dist-linkDist)*linkStr;
+    const fx=(dx/dist)*f,fy=(dy/dist)*f;
+    e.source.vx+=fx;e.source.vy+=fy;e.target.vx-=fx;e.target.vy-=fy;
+  });
+  nodes.forEach(n=>{if(!n.visible)return;n.vx*=damp;n.vy*=damp;n.x+=n.vx;n.y+=n.vy;});
+}
+
+const _t=performance.now.bind(performance);
+function hexPath(cx2,x,y,r){cx2.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6,px=x+r*Math.cos(a),py=y+r*Math.sin(a);i===0?cx2.moveTo(px,py):cx2.lineTo(px,py);}cx2.closePath();}
+function diamondPath(cx2,x,y,r){cx2.beginPath();cx2.moveTo(x,y-r);cx2.lineTo(x+r*0.7,y);cx2.lineTo(x,y+r);cx2.lineTo(x-r*0.7,y);cx2.closePath();}
+function triPath(cx2,x,y,r){cx2.beginPath();for(let i=0;i<3;i++){const a=Math.PI*2/3*i-Math.PI/2,px=x+r*Math.cos(a),py=y+r*Math.sin(a);i===0?cx2.moveTo(px,py):cx2.lineTo(px,py);}cx2.closePath();}
+
+function draw(){
+  for(let i=0;i<2;i++)tick();
+  if(viewMode!=='graph'){requestAnimationFrame(draw);return;}
+  const t=_t()*0.001;
+  cx.clearRect(0,0,W,H);
+  cx.save();cx.globalAlpha=dark?0.015:0.025;cx.strokeStyle=dark?'#c4a265':'#8a6a30';cx.lineWidth=0.5;
+  const gs=80;
+  for(let gx=-W/zoom;gx<W*2/zoom;gx+=gs){cx.beginPath();cx.moveTo(gx,-H/zoom);cx.lineTo(gx,H*2/zoom);cx.stroke();}
+  for(let gy=-H/zoom;gy<H*2/zoom;gy+=gs){cx.beginPath();cx.moveTo(-W/zoom,gy);cx.lineTo(W*2/zoom,gy);cx.stroke();}
+  cx.restore();
+  cx.save();cx.translate(W/2+cam.x,H/2+cam.y);cx.scale(zoom,zoom);
+  edges.forEach(e=>{
+    if(!e.source.visible||!e.target.visible)return;
+    const isSel=sel&&(e.source.id===sel||e.target.id===sel);
+    const isHov=hov&&(e.source.id===hov||e.target.id===hov);
+    const ecol=CAT_RAW[e.source.n.cat]||'#b09860';
+    const ehr=parseInt(ecol.slice(1,3),16),ehg=parseInt(ecol.slice(3,5),16),ehb=parseInt(ecol.slice(5,7),16);
+    if(isSel){cx.strokeStyle='rgba(196,162,101,0.55)';cx.lineWidth=1.0;cx.setLineDash([]);}
+    else if(isHov){cx.strokeStyle='rgba(196,162,101,0.30)';cx.lineWidth=0.7;cx.setLineDash([]);}
+    else{cx.strokeStyle=dark?'rgba('+ehr+','+ehg+','+ehb+',0.32)':'rgba('+ehr+','+ehg+','+ehb+',0.28)';cx.lineWidth=0.5;cx.setLineDash([]);}
+    cx.beginPath();cx.moveTo(e.source.x,e.source.y);cx.lineTo(e.target.x,e.target.y);cx.stroke();
+    if(!isSel&&!isHov){
+      cx.fillStyle=dark?'rgba('+ehr+','+ehg+','+ehb+',0.15)':'rgba('+ehr+','+ehg+','+ehb+',0.12)';
+      const mx2=(e.source.x+e.target.x)/2,my2=(e.source.y+e.target.y)/2;
+      cx.beginPath();cx.arc(mx2,my2,0.8,0,Math.PI*2);cx.fill();
+    }
+    if(isSel){
+      const prog=(t*0.5)%1;
+      const px=e.source.x+(e.target.x-e.source.x)*prog,py=e.source.y+(e.target.y-e.source.y)*prog;
+      cx.fillStyle='rgba(196,162,101,0.6)';cx.beginPath();cx.arc(px,py,1.5,0,Math.PI*2);cx.fill();
+    }
+  });
+  cx.setLineDash([]);
+  nodes.forEach(n=>{
+    if(!n.visible)return;
+    const isSel=n.id===sel,isHov=n.id===hov;
+    const isConn=sel&&(edges.some(e=>(e.source.id===sel&&e.target.id===n.id)||(e.target.id===sel&&e.source.id===n.id)));
+    const col=CAT_RAW[n.cat]||'#b09860';
+    const hr=parseInt(col.slice(1,3),16),hg=parseInt(col.slice(3,5),16),hb=parseInt(col.slice(5,7),16);
+    const shape=CAT_SHAPE[n.cat]||'hex';
+    const r=isSel?14:isHov?12:isConn?10:8;
+    if(isSel||isHov){
+      const scanAlpha=isSel?0.3:0.15;
+      cx.strokeStyle='rgba(196,162,101,'+scanAlpha+')';cx.lineWidth=0.5;
+      const scanR=r+10,sweep=isSel?1.2:0.8,angle=t*2;
+      cx.beginPath();cx.arc(n.x,n.y,scanR,angle,angle+sweep);cx.stroke();
+      cx.beginPath();cx.arc(n.x,n.y,scanR,angle+Math.PI,angle+Math.PI+sweep);cx.stroke();
+    }
+    if(isSel){cx.strokeStyle='rgba(196,162,101,0.85)';cx.lineWidth=1.2;}
+    else if(isHov){cx.strokeStyle='rgba(196,162,101,0.55)';cx.lineWidth=0.8;}
+    else if(isConn){cx.strokeStyle='rgba('+hr+','+hg+','+hb+',0.5)';cx.lineWidth=0.7;}
+    else{cx.strokeStyle='rgba('+hr+','+hg+','+hb+',0.35)';cx.lineWidth=0.5;}
+    if(shape==='hex')hexPath(cx,n.x,n.y,r);
+    else if(shape==='diamond')diamondPath(cx,n.x,n.y,r);
+    else triPath(cx,n.x,n.y,r);
+    cx.stroke();
+    const fillAlpha=isSel?0.12:isHov?0.08:isConn?0.05:0.02;
+    cx.fillStyle='rgba('+hr+','+hg+','+hb+','+fillAlpha+')';cx.fill();
+    const dotAlpha=isSel?1:isHov?0.9:isConn?0.7:0.5;
+    cx.fillStyle='rgba('+hr+','+hg+','+hb+','+dotAlpha+')';
+    cx.beginPath();cx.arc(n.x,n.y,isSel?2:1.5,0,Math.PI*2);cx.fill();
+    if((isSel||isHov)&&shape==='hex'){
+      cx.strokeStyle='rgba(196,162,101,'+(isSel?0.4:0.2)+')';cx.lineWidth=0.5;
+      for(let i=0;i<6;i++){
+        const a=Math.PI/3*i-Math.PI/6;
+        const ox2=n.x+(r+4)*Math.cos(a),oy2=n.y+(r+4)*Math.sin(a);
+        const ix=n.x+(r+1)*Math.cos(a),iy=n.y+(r+1)*Math.sin(a);
+        cx.beginPath();cx.moveTo(ix,iy);cx.lineTo(ox2,oy2);cx.stroke();
+      }
+    }
+    const labelAlpha=isSel?1:isHov?1:isConn?0.95:0.85;
+    cx.fillStyle=isSel||isHov?'rgba(196,162,101,'+labelAlpha+')':dark?'rgba(212,200,176,'+labelAlpha+')':'rgba(42,37,32,'+labelAlpha+')';
+    cx.font="300 10px 'Plus Jakarta Sans'";cx.textAlign='center';
+    cx.fillText(n.n.l.toUpperCase(),n.x,n.y+r+16);
+    if(isSel||isHov){
+      const cc=edges.filter(e=>(e.source.id===n.id||e.target.id===n.id)&&e.source.visible&&e.target.visible).length;
+      cx.font='300 7px JetBrains Mono';cx.fillStyle='rgba(196,162,101,0.8)';
+      cx.fillText(cc+'',n.x,n.y+r+25);
+    }
+  });
+  cx.restore();drawMinimap();requestAnimationFrame(draw);
+}
+
+function drawMinimap(){
+  const mc=document.getElementById('mmc'),mx=mc.getContext('2d');
+  mx.clearRect(0,0,140,90);
+  const vis=nodes.filter(n=>n.visible);if(!vis.length)return;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  vis.forEach(n=>{minX=Math.min(minX,n.x);minY=Math.min(minY,n.y);maxX=Math.max(maxX,n.x);maxY=Math.max(maxY,n.y);});
+  const pad=50;minX-=pad;minY-=pad;maxX+=pad;maxY+=pad;
+  const sc=Math.min(140/(maxX-minX),90/(maxY-minY));
+  mx.strokeStyle=dark?'rgba(196,162,101,0.12)':'rgba(120,90,40,0.10)';mx.lineWidth=0.5;
+  edges.forEach(e=>{if(!e.source.visible||!e.target.visible)return;mx.beginPath();mx.moveTo((e.source.x-minX)*sc,(e.source.y-minY)*sc);mx.lineTo((e.target.x-minX)*sc,(e.target.y-minY)*sc);mx.stroke();});
+  vis.forEach(n=>{
+    const col=CAT_RAW[n.cat]||'#b09860';
+    const hr=parseInt(col.slice(1,3),16),hg=parseInt(col.slice(3,5),16),hb=parseInt(col.slice(5,7),16);
+    mx.strokeStyle='rgba('+hr+','+hg+','+hb+',0.6)';mx.lineWidth=0.5;
+    hexPath(mx,(n.x-minX)*sc,(n.y-minY)*sc,2.5);mx.stroke();
+  });
+  const vl=-cam.x/zoom-W/(2*zoom),vt=-cam.y/zoom-H/(2*zoom),vw=W/zoom,vh=H/zoom;
+  mx.strokeStyle='rgba(196,162,101,0.3)';mx.lineWidth=0.5;
+  mx.strokeRect((vl-minX)*sc,(vt-minY)*sc,vw*sc,vh*sc);
+}
+
+function screenToGraph(ex,ey){return{x:(ex-W/2-cam.x)/zoom,y:(ey-40-H/2-cam.y)/zoom};}
+function findNode(ex,ey){
+  const p=screenToGraph(ex,ey);let best=null,bestD=30;
+  nodes.forEach(n=>{if(!n.visible)return;const dx=n.x-p.x,dy=n.y-p.y,d=Math.sqrt(dx*dx+dy*dy);if(d<bestD){bestD=d;best=n;}});
+  return best;
+}
+
+cv.addEventListener('mousemove',e=>{
+  const tip=document.getElementById('tip');
+  if(dragging){cam.x+=e.movementX;cam.y+=e.movementY;tip.classList.remove('on');return;}
+  const found=findNode(e.clientX,e.clientY-40);
+  if(found){
+    hov=found.id;cv.style.cursor='pointer';tip.classList.add('on');
+    document.getElementById('tipC').textContent=CAT_LABELS[found.cat]||found.cat;
+    document.getElementById('tipT').textContent=found.n.l;
+    const cc=edges.filter(ed=>(ed.source.id===found.id||ed.target.id===found.id)&&ed.source.visible&&ed.target.visible).length;
+    document.getElementById('tipN').textContent=cc+' connections';
+    tip.style.left=Math.min(e.clientX+16,W-200)+'px';tip.style.top=(e.clientY+16)+'px';
+  }else{hov=null;cv.style.cursor='crosshair';tip.classList.remove('on');}
+});
+cv.addEventListener('mousedown',()=>{dragging=true;cv.style.cursor='grabbing';});
+addEventListener('mouseup',()=>{dragging=false;cv.style.cursor=hov?'pointer':'crosshair';});
+cv.addEventListener('click',e=>{
+  const found=findNode(e.clientX,e.clientY-40);
+  if(found){sel=found.id;openPanel(found.n);}else{sel=null;closePanel();}
+});
+cv.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY>0?0.9:1.1;zoom=Math.max(0.2,Math.min(5,zoom*f));},{passive:false});
+function zoomTo(z){zoom=Math.max(0.2,Math.min(5,z));}
+
+function openPanel(n){
+  document.getElementById('dp').classList.add('on');
+  const col=CAT_RAW[n.cat]||'#b09860';
+  document.getElementById('dph').innerHTML=
+    '<div class="dp-cat"><span class="dp-dot" style="background:'+col+'"></span>'+(CAT_LABELS[n.cat]||n.cat)+'</div>'+
+    '<div class="dp-title">'+n.l+'</div>'+
+    '<div class="dp-id">'+n.id+'</div>'+
+    (n.gh?'<a class="dp-gh" href="'+GH+n.gh+'" target="_blank">GitHub</a>':'');
+  const dtabs=document.getElementById('dtabs');
+  const tabs=['Overview'];if(n.code)tabs.push('Code');if(n.guide)tabs.push('Guide');
+  dtabs.innerHTML=tabs.map((t,i)=>'<button class="tab'+(i===0?' on':'')+'" data-tab="'+t.toLowerCase()+'">'+t+'</button>').join('');
+  dtabs.querySelectorAll('.tab').forEach(tb=>{tb.onclick=()=>{dtabs.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));tb.classList.add('on');showTab(n,tb.dataset.tab);};});
+  showTab(n,'overview');
+}
+function showTab(n,tab){
+  const dtb=document.getElementById('dtb');
+  if(tab==='overview'){
+    let h='';
+    if(n.desc)h+='<div class="os"><div class="ol">Description</div><div class="otx">'+n.desc+'</div></div>';
+    if(n.conn&&n.conn.length){
+      h+='<div class="os"><div class="ol">Connections</div><div class="conn-list">';
+      n.conn.forEach(c=>{const t=N.find(x=>x.id===c);if(t)h+='<span class="conn-tag" onclick="selectNode(\''+c+'\')">'+t.l+'</span>';});
+      h+='</div></div>';
+    }
+    if(n.files&&n.files.length){
+      h+='<div class="os"><div class="ol">Files</div><div class="conn-list">';
+      n.files.forEach(f=>{h+='<a class="conn-tag" href="'+GH+f+'" target="_blank" style="text-decoration:none">'+f+'</a>';});
+      h+='</div></div>';
+    }
+    dtb.innerHTML=h;
+  } else if(tab==='code'&&n.code){
+    dtb.innerHTML='<div class="cblk"><div class="cbh"><span class="cbf">'+(n.cf||n.id)+'</span><span class="cbl">'+(n.cl||'Swift')+'</span></div><div class="cbd">'+n.code+'</div></div>';
+  } else if(tab==='guide'&&n.guide){
+    dtb.innerHTML=n.guide;
+  } else {
+    dtb.innerHTML='<div class="otx" style="padding:20px;color:var(--t3)">No content available</div>';
+  }
+}
+function selectNode(id){
+  sel=id;const n=N.find(x=>x.id===id);if(n)openPanel(n);
+  if(viewMode==='graph'){const node=nodeMap[id];if(node){cam.x=-node.x*zoom;cam.y=-node.y*zoom;}}
+}
+function closePanel(){document.getElementById('dp').classList.remove('on');sel=null;}
+function toggleSearch(){
+  const sov=document.getElementById('sov');sov.classList.toggle('on');
+  if(sov.classList.contains('on')){
+    const inp=document.getElementById('si');
+    inp.value='';inp.focus();
+    document.getElementById('srl').innerHTML='';
+    const mb=document.getElementById('s-mode-badge');
+    mb.textContent='';mb.className='s-mode';
+  }
+}
+
+// ─── Intelligent Search Engine ────────────────────────────────────
+const TOPICS={
+  station:['stations-menu-vc','station-slot-api','station-cleaning','control-center','crafting','ble-opcodes','station-telemetry'],
+  slot:['station-slot-api','stations-menu-vc','crafting','control-center'],
+  clean:['station-cleaning','stations-menu-vc','control-center'],
+  pour:['crafting','ble-opcodes','ble-manager','drink-complete'],
+  recipe:['recipes-api','recipe-browse','recipe-model-ios','delta-sync','recipe-catalog-api','db-recipes-schema'],
+  cocktail:['recipes-api','recipe-catalog-api','recipe-browse','mixlists-api'],
+  mixlist:['mixlists','mixlists-api','local-db','delta-sync','db-mixlists-schema'],
+  playlist:['mixlists','mixlists-api','delta-sync'],
+  ingredient:['mybar-api','ingredients-catalog','products-api','my-bar','db-mybar-schema'],
+  mybar:['my-bar','mybar-api','ingredients-catalog','db-mybar-schema'],
+  populate:['delta-sync','local-db','mixlists-api','mixlists'],
+  auth:['auth-flow','auth-api','ory','jwt-middleware','security-layer'],
+  login:['auth-flow','auth-api','ory','onboarding'],
+  otp:['auth-flow','auth-api','ory'],
+  token:['jwt-middleware','auth-flow','security-layer','ory'],
+  keychain:['auth-flow','security-layer'],
+  ble:['ble-manager','ble-hardware','ble-opcodes','coaster-device-support'],
+  bluetooth:['ble-manager','ble-hardware','device-pairing-ui'],
+  hardware:['ble-hardware','ble-opcodes','ble-manager','coaster-device-support'],
+  device:['device-pairing-ui','control-center','ble-manager','coaster-device-support'],
+  pair:['device-pairing-ui','ble-manager','control-center'],
+  opcode:['ble-opcodes','ble-manager','crafting'],
+  barbot:['barbot','bond-ai','chat-api','barbot-history','barbot-ml'],
+  bond:['bond-ai','chat-api','barbot'],
+  chat:['chat-api','barbot','chat-history','bond-ai'],
+  sse:['barbot','bond-ai'],
+  stream:['barbot','bond-ai','delta-sync'],
+  sync:['delta-sync','local-db','sqlite-cache'],
+  cache:['delta-sync','local-db','sqlite-cache'],
+  sqlite:['local-db','sqlite-cache'],
+  database:['postgres','mysql','local-db','sqlite-cache','chat-history'],
+  postgres:['postgres','db-recipes-schema','db-mixlists-schema','db-mybar-schema','chat-history'],
+  mysql:['mysql','recipes-api','mixlists-api'],
+  table:['postgres','db-recipes-schema','db-mixlists-schema','db-mybar-schema'],
+  party:['party-api','party-websocket','websocket-hub'],
+  social:['social-api','social-scan-api'],
+  scan:['scanner','scanner-api','barbot-ml','image-picker-upload'],
+  analytics:['analytics-layer','event-tracking-system','analytics-consent-management'],
+  tracking:['event-tracking-system','analytics-layer'],
+  event:['event-tracking-system','analytics-layer'],
+  braze:['analytics-layer','push-notifications-api'],
+  profile:['profile-mgmt','profile-api','auth-flow'],
+  navigation:['coordinator-nav','deep-links'],
+  coordinator:['coordinator-nav'],
+  notification:['push-notifications-api','analytics-layer'],
+  upload:['image-picker-upload','media-upload','gcs'],
+  image:['image-picker-upload','media-upload','gcs'],
+  video:['video-playback'],
+  crafting:['crafting','ble-manager','stations-menu-vc','recipe-browse','ble-opcodes'],
+  drink:['crafting','drink-complete','barbot-history'],
+  complete:['drink-complete','crafting','ble-opcodes'],
+  rating:['drink-complete','recipe-ratings-api','recipes-api'],
+  favorite:['favorites-drinks','recipes-api','local-db'],
+  feed:['home-cards-api','social-api','barbot-ml'],
+  recommendation:['recipes-api','home-cards-api','barbot-ml','bond-ai','vector-embeddings'],
+  embedding:['vector-embeddings','bond-ai','barbot-ml','postgres'],
+  websocket:['speak-easy-ws','party-websocket','websocket-hub'],
+  gcs:['gcs','media-upload'],
+  pubsub:['pubsub','pubsub-topics','recipes-api'],
+  ory:['ory','auth-api','auth-flow','jwt-middleware'],
+  jwt:['jwt-middleware','auth-flow','ory'],
+  ssl:['security-layer','bond-ai'],
+  onboarding:['onboarding','auth-flow','auth-api'],
+  settings:['settings-ui','profile-mgmt'],
+  consent:['analytics-consent-management','analytics-layer'],
+  ready:['ready-to-pour','mybar-api','local-db'],
+  available:['ready-to-pour','mybar-api'],
+  shopping:['shopping-list','mybar-api','scanner-api'],
+  intelligence:['intelligence-api','social-api','vector-embeddings'],
+  streak:['streaks-api','social-api'],
+  pour_card:['pour-cards-api'],
+  taste:['taste-calibration-api','profile-mgmt'],
+  home:['home-cards-api','barbot-ml'],
+  card:['home-cards-api','pour-cards-api'],
+};
+
+const STOP=new Set(['the','is','are','was','were','how','what','where','which','why','does','do','did','and','or','for','with','from','into','by','of','to','in','it','a','an','that','this','there','these','those','be','been','being','have','has','had','will','would','could','should','may','might','can','not','no','show','me','my','about','using','use','used','when','then','also','all','any','each','get','got','set','let','new','old','its','our','their','them','they','we','you','i','am','at','on','as','if','but','so','yet','nor','up','out','off','way','make','made','just','tell','want','need']);
+
+function stripHtml(s){return (s||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();}
+
+function isQuestion(q){
+  return /^(how|what|where|which|why|show|explain|tell|find|who|does|do|when|can|is|are)\b/i.test(q.trim())||q.includes('?')||(q.length>20&&/\s/.test(q));
+}
+
+function scoreAndRank(words){
+  const scores={};
+  N.forEach(n=>{scores[n.id]=0;});
+  words.forEach(word=>{
+    const wl=word.toLowerCase();
+    Object.entries(TOPICS).forEach(([topic,ids])=>{
+      if(topic===wl||topic.startsWith(wl)||wl.startsWith(topic)){
+        ids.forEach(id=>{if(scores[id]!==undefined)scores[id]+=3;});
+      }
+    });
+    N.forEach(n=>{
+      const lbl=n.l.toLowerCase(),nid=n.id.toLowerCase();
+      const desc=stripHtml(n.desc||'').toLowerCase();
+      if(lbl===wl||nid===wl)scores[n.id]+=5;
+      else if(lbl.includes(wl)||nid.includes(wl))scores[n.id]+=3;
+      else if(desc.includes(wl))scores[n.id]+=1;
+    });
+  });
+  const seeded=N.filter(n=>scores[n.id]>=3).map(n=>n.id);
+  seeded.forEach(id=>{
+    const nd=N.find(x=>x.id===id);
+    if(nd&&nd.conn)nd.conn.forEach(cid=>{if(scores[cid]!==undefined)scores[cid]+=0.5;});
+  });
+  return N.filter(n=>scores[n.id]>0)
+    .sort((a,b)=>scores[b.id]-scores[a.id])
+    .map(n=>({...n,_score:scores[n.id]}));
+}
+
+function buildAnswer(q,nodes,words){return null;} // replaced by AI
+
+let KG_API_KEY=sessionStorage.getItem('kg_api_key')||'';
+
+function saveKey(){
+  const inp=document.getElementById('kg-key-inp');
+  if(!inp||!inp.value.trim())return;
+  KG_API_KEY=inp.value.trim();
+  sessionStorage.setItem('kg_api_key',KG_API_KEY);
+  updateKeyBadge();
+  const si=document.getElementById('si');
+  if(si&&si.value.trim())doSearch(si.value);
+}
+
+function clearKey(){
+  KG_API_KEY='';
+  sessionStorage.removeItem('kg_api_key');
+  updateKeyBadge();
+}
+
+function updateKeyBadge(){
+  const b=document.getElementById('kg-key-badge');
+  if(!b)return;
+  if(KG_API_KEY==='__server__'){
+    b.textContent='AI READY';b.className='kg-key-status set';
+    b.title='AI search powered by server';b.onclick=null;
+  } else if(KG_API_KEY){
+    b.textContent='AI READY';b.className='kg-key-status set';
+    b.title='API key set — click to clear';
+    b.onclick=()=>{if(confirm('Clear stored API key?'))clearKey();};
+  } else {
+    b.textContent='NO KEY';b.className='kg-key-status unset';
+    b.title='Click to add your Anthropic API key';
+    b.onclick=showKeyPrompt;
+  }
+}
+
+function showKeyPrompt(){
+  if(KG_API_KEY){if(confirm('Clear the stored API key?'))clearKey();return;}
+  const sov=document.getElementById('sov');
+  if(!sov.classList.contains('on')){sov.classList.add('on');document.getElementById('si').focus();}
+  const srl=document.getElementById('srl');
+  srl.innerHTML='<div class="qa-answer">'
+    +'<div class="qa-alabel">Connect Anthropic API</div>'
+    +'<div class="qa-atext" style="margin-bottom:2px">Paste your Anthropic API key to enable AI-powered answers for any question about the Barsys architecture.</div>'
+    +'<div class="kg-key-wrap">'
+    +'<input id="kg-key-inp" class="kg-key-inp" type="password" placeholder="sk-ant-api03-..." onkeydown="if(event.key===\'Enter\')saveKey()">'
+    +'<button class="kg-key-btn" onclick="saveKey()">CONNECT</button>'
+    +'</div></div>';
+  setTimeout(()=>{const i=document.getElementById('kg-key-inp');if(i)i.focus();},50);
+}
+
+async function callClaudeSearch(q){
+  const ctx=N.map(n=>{
+    const conns=(n.conn||[]).join(', ');
+    const desc=stripHtml(n.desc||'').slice(0,300);
+    return '['+n.id+'] '+n.l+' ('+n.cat+')\n'+desc+'\nConnects to: '+(conns||'none');
+  }).join('\n\n---\n');
+
+  const headers={'Content-Type':'application/json'};
+  if(KG_API_KEY&&KG_API_KEY!=='__server__')headers['X-Api-Key']=KG_API_KEY;
+  const resp=await fetch('/anthropic',{
+    method:'POST',
+    headers:headers,
+    body:JSON.stringify({
+      model:'claude-haiku-4-5-20251001',
+      max_tokens:800,
+      system:'You are an expert on the Barsys AI iOS app and Defteros backend. A knowledge graph of 89 nodes is provided. Answer questions using ONLY this knowledge graph. When referencing nodes, always wrap the node ID in brackets like [node-id] — this is critical for the UI to highlight them. Structure every answer as: (1) a direct explanation in 2-4 sentences, then (2) bullet lines starting with • [node-id] NodeName: one sentence on why it is relevant. Always include connection paths when asked. Be specific and technical.',
+      messages:[{role:'user',content:'KNOWLEDGE GRAPH:\n'+ctx+'\n\nQUESTION: '+q}]
+    })
+  });
+
+  if(!resp.ok){
+    const err=await resp.json().catch(()=>({error:{message:'HTTP '+resp.status}}));
+    if(resp.status===401&&KG_API_KEY!=='__server__'){KG_API_KEY='';sessionStorage.removeItem('kg_api_key');updateKeyBadge();}
+    throw new Error((err.error&&err.error.message)||'API error '+resp.status);
+  }
+  const data=await resp.json();
+  return data.content[0].text;
+}
+
+function renderAIAnswer(text,words,srl){
+  // Extract [node-id] references from AI response
+  const refIds=[...new Set([...text.matchAll(/\[([a-z0-9][a-z0-9-]*)\]/g)].map(m=>m[1]))];
+  const refNodes=refIds.map(id=>N.find(n=>n.id===id)).filter(Boolean);
+
+  // Format text: make [node-id] clickable, bullet points, newlines
+  const formatted=text
+    .replace(/\[([a-z0-9][a-z0-9-]*)\]/g,(match,id)=>{
+      const node=N.find(n=>n.id===id);
+      if(!node)return match;
+      return '<span class="kg-node-ref" onclick="selectNode(\''+id+'\');toggleSearch();" style="color:'+nodeColor(node)+'" title="Click to focus node">'+node.l+'</span>';
+    })
+    .replace(/^•\s*/gm,'<br>• ')
+    .replace(/\n\n/g,'<br><br>')
+    .replace(/\n/g,'<br>');
+
+  let out='<div class="qa-answer">'
+    +'<div class="qa-alabel">AI Answer</div>'
+    +'<div class="qa-atext">'+formatted+'</div>'
+    +'</div>';
+
+  if(refNodes.length){
+    out+='<div class="qa-nlabel">Referenced nodes ('+refNodes.length+')</div>';
+    out+=refNodes.map(n=>{
+      const excerpt=getExcerpt(n,words);
+      const conns=getConnLabels(n,refNodes);
+      const connHtml=conns.length?'<div class="sr-conn">'+conns.map(c=>'<span class="sr-conn-dot"></span>'+c).join(' ')+'</div>':'';
+      return '<div class="sr" onclick="selectNode(\''+n.id+'\');toggleSearch();">'
+        +'<div class="sr-top">'
+        +'<div class="sr-dot" style="background:'+nodeColor(n)+'"></div>'
+        +'<div class="sr-name">'+n.l+'</div>'
+        +'<div class="sr-cat" style="border-color:'+nodeColor(n)+'30;color:'+nodeColor(n)+'">'+(CAT_LABELS[n.cat]||n.cat)+'</div>'
+        +'</div>'
+        +'<div class="sr-excerpt">'+excerpt+'</div>'
+        +connHtml
+        +'</div>';
+    }).join('');
+  }
+  srl.innerHTML=out;
+}
+
+async function doSearch(q){
+  const srl=document.getElementById('srl');
+  const mb=document.getElementById('s-mode-badge');
+  if(!q.trim()){srl.innerHTML='';mb.textContent='';mb.className='s-mode';return;}
+
+  const words=q.toLowerCase().split(/[\s\W]+/).filter(w=>w.length>2&&!STOP.has(w));
+  const qmode=isQuestion(q)&&words.length>1;
+
+  if(qmode){
+    mb.textContent='AI SEARCH';mb.className='s-mode qa';
+
+    if(!KG_API_KEY){
+      srl.innerHTML='<div class="qa-answer">'
+        +'<div class="qa-alabel">API Key Required</div>'
+        +'<div class="qa-atext" style="margin-bottom:2px">Enter your Anthropic API key to get AI-powered answers about the Barsys architecture.</div>'
+        +'<div class="kg-key-wrap">'
+        +'<input id="kg-key-inp" class="kg-key-inp" type="password" placeholder="sk-ant-api03-..." onkeydown="if(event.key===\'Enter\')saveKey()">'
+        +'<button class="kg-key-btn" onclick="saveKey()">CONNECT</button>'
+        +'</div></div>';
+      setTimeout(()=>{const i=document.getElementById('kg-key-inp');if(i)i.focus();},50);
+      return;
+    }
+
+    // Loading state
+    srl.innerHTML='<div class="qa-answer">'
+      +'<div class="qa-alabel">AI Search</div>'
+      +'<div class="qa-atext">Searching knowledge graph<span class="kg-dots"><span>.</span><span>.</span><span>.</span></span></div>'
+      +'</div>';
+
+    try{
+      const answer=await callClaudeSearch(q);
+      renderAIAnswer(answer,words,srl);
+    }catch(e){
+      srl.innerHTML='<div class="qa-answer">'
+        +'<div class="qa-alabel" style="color:#c46">Error</div>'
+        +'<div class="qa-atext" style="color:#c46">'+e.message+'</div>'
+        +(e.message.includes('401')||e.message.includes('invalid')?'<div style="margin-top:8px"><button class="kg-key-btn" onclick="showKeyPrompt()">RE-ENTER KEY</button></div>':'')
+        +'</div>';
+    }
+  } else {
+    mb.textContent='NODE SEARCH';mb.className='s-mode';
+    const ranked=scoreAndRank(words);
+    const ql=q.toLowerCase();
+    const matches=ranked.length?ranked:N.filter(n=>n.l.toLowerCase().includes(ql)||n.id.toLowerCase().includes(ql)||(n.desc&&n.desc.toLowerCase().includes(ql)));
+    srl.innerHTML=matches.slice(0,12).map(n=>{
+      const excerpt=getExcerpt(n,words.length?words:[ql]);
+      return '<div class="sr" onclick="selectNode(\''+n.id+'\');toggleSearch();">'
+        +'<div class="sr-top">'
+        +'<div class="sr-dot" style="background:'+nodeColor(n)+'"></div>'
+        +'<div class="sr-name">'+n.l+'</div>'
+        +'<div class="sr-cat" style="border-color:'+nodeColor(n)+'30;color:'+nodeColor(n)+'">'+(CAT_LABELS[n.cat]||n.cat)+'</div>'
+        +'</div>'
+        +'<div class="sr-excerpt">'+excerpt+'</div>'
+        +'</div>';
+    }).join('');
+  }
+}
+
+// Init key badge on load
+async function checkServerKey(){
+  try{
+    const r=await fetch('/health',{cache:'no-store'});
+    const d=await r.json();
+    if(d.hasKey){
+      KG_API_KEY='__server__';
+      sessionStorage.removeItem('kg_api_key');
+      updateKeyBadge();
+    }
+  }catch(e){/* local file:// or server without key — normal UI */}
+}
+
+document.addEventListener('DOMContentLoaded',()=>{updateKeyBadge();checkServerKey();});
+
+function toggleTheme(){
+  dark=!dark;
+  if(dark){
+    document.documentElement.removeAttribute('data-theme');
+    Object.assign(CAT_RAW,CAT_RAW_DARK);
+  } else {
+    document.documentElement.setAttribute('data-theme','light');
+    Object.assign(CAT_RAW,CAT_RAW_LIGHT);
+  }
+}
+addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.getElementById('sov').classList.contains('on')){
+    const first=document.querySelector('#srl .sr');
+    if(first)first.click();
+    return;
+  }
+  if(e.key==='Escape'){
+    if(document.getElementById('sov').classList.contains('on'))toggleSearch();
+    else closePanel();
+  }
+  if(e.key==='/'&&!document.getElementById('sov').classList.contains('on')){e.preventDefault();toggleSearch();}
+  if(e.key==='1')switchView('graph');
+  if(e.key==='2')switchView('directory');
+});
+for(let i=0;i<500;i++)tick();
+function autoFit(){
+  const vis=nodes.filter(n=>n.visible);if(!vis.length)return;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  vis.forEach(n=>{minX=Math.min(minX,n.x);minY=Math.min(minY,n.y);maxX=Math.max(maxX,n.x);maxY=Math.max(maxY,n.y);});
+  const gw=maxX-minX+200,gh=maxY-minY+200;
+  zoom=Math.min(W/gw,H/gh,1.5);zoom=Math.max(zoom,0.3);
+  cam.x=-(minX+maxX)/2*zoom;cam.y=-(minY+maxY)/2*zoom;
+}
+autoFit();
+requestAnimationFrame(draw);
+
+</script>
+</body>
+</html>
