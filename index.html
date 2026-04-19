@@ -1860,6 +1860,219 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  conn:['ios-app','recipe-browse','device-pairing-ui','barbot'],
  guide:`<div class="gs"><div class="gt">Add video to onboarding</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Bundle MP4 in app bundle or use a CDN URL</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>VideoManager.play(url:from:)</code> — presents <code>AVPlayerViewController</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Recipe model has no <code>video_url</code> field — do not attempt to read it from recipe data</span></div></div></div>`}
 
+// ── iOS — Additional Services ─────────────────────────────────────
+,{id:'braze-integration',l:'Braze Integration',cat:'ios',sz:5,rel:.9,cl:'Swift',
+ desc:'Braze SDK initialized in AppDelegate with API key d5beb9b6-9499-4213-b4dd-f36322e1d444 and endpoint sdk.iad-07.braze.com. Configures push automation gated by AnalyticsConsentManager.isConsentGranted, BrazeInAppMessageUI for in-app messages, and UNUserNotificationCenter delegate for foreground/background notification handling. SDK authentication enabled for secure event delivery.',
+ code:`<span class="ck">private func</span> configureBraze() {
+  <span class="ck">let</span> configuration = Braze.Configuration(
+    apiKey: GlobalConstants.brazeApiKey,
+    endpoint: GlobalConstants.brazeEndpoint
+  )
+  configuration.push.automation = <span class="ck">true</span>
+  configuration.push.automation.requestAuthorizationAtLaunch =
+    AnalyticsConsentManager.isConsentGranted
+  configuration.forwardUniversalLinks = <span class="ck">true</span>
+  configuration.api.sdkAuthentication = <span class="ck">true</span>
+  <span class="ck">let</span> braze = Braze(configuration: configuration)
+  AppDelegate.braze = braze
+  <span class="ck">let</span> brazeUI = BrazeInAppMessageUI()
+  brazeUI.delegate = <span class="ck">self</span>
+  AppDelegate.braze?.inAppMessagePresenter = brazeUI
+}`,
+ conn:['ios-app','analytics-layer','analytics-consent-management','event-tracking-system','push-notifications-api'],
+ guide:`<div class="gs"><div class="gt">Add a new Braze custom event</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add case to <code>TrackEventName</code> enum in TrackEventName.swift</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>AppDelegate.braze?.logCustomEvent(eventName)</code> from TrackEventsClass</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Verify <code>AnalyticsConsentManager.isConsentGranted == true</code> before logging</span></div><div class="gstep hl"><span class="gsn">4</span><span class="gst">Check Braze dashboard under Analytics → Custom Events to confirm delivery within 30 min</span></div></div></div>`}
+
+,{id:'connection-monitor',l:'Connection Monitor',cat:'ios',sz:4,rel:.8,cl:'Swift',
+ desc:'Actor-based network reachability monitor in ReachabilityClass.swift using Network.framework NWPathMonitor. Detects real-time connectivity changes and identifies connection type (Wi-Fi, cellular, ethernet). Updates AppDelegate network state and posts system notifications when status changes, supporting async/await concurrency patterns throughout the app.',
+ code:`<span class="ck">actor</span> ConnectionMonitor {
+  <span class="ck">static let</span> shared = ConnectionMonitor()
+  <span class="ck">private let</span> monitor: NWPathMonitor
+  <span class="ck">private let</span> queue = DispatchQueue(label: <span class="cs">"ConnectionMonitorQueue"</span>)
+  <span class="ck">private(set) var</span> isConnected: Bool = <span class="ck">false</span>
+  <span class="ck">var</span> connectionType: ConnectionTypeEnum = .none
+
+  <span class="ck">private init</span>() {
+    monitor = NWPathMonitor()
+    monitor.pathUpdateHandler = { [<span class="ck">weak self</span>] path <span class="ck">in</span>
+      Task { <span class="ck">await self</span>?.updateStatus(path) }
+    }
+    monitor.start(queue: queue)
+  }
+}`,
+ conn:['ios-app','local-db','defteros','security-layer'],
+ guide:`<div class="gs"><div class="gt">Guard an API call behind connectivity check</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Call <code>await ConnectionMonitor.shared.isConnected</code> before making any network request</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Observe <code>Notification.Name("networkStatusChanged")</code> for real-time UI updates on status bar</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">NWPathMonitor must be started once — use the shared actor singleton, never create new instances</span></div></div></div>`}
+
+,{id:'ble-command-builder',l:'BLE Command Builder',cat:'ble',sz:4,rel:.85,cl:'Swift',
+ desc:'BleCommand.swift type-safe enum encapsulating all firmware commands: cancel, flushStation, stopDispense, pauseDispense, craftRaw, renameDevice, manualSpinStart/Stop. Each case produces exact firmware strings via computed rawValue, eliminating scattered magic strings. BleCommandBuilder.buildCommandString() constructs 15-component crafting commands from recipe station assignments for Barsys 360.',
+ code:`<span class="ck">enum</span> BleCommand {
+  <span class="ck">case</span> cancel
+  <span class="ck">case</span> flushStation(stationNumber: Int)
+  <span class="ck">case</span> stopDispense
+  <span class="ck">case</span> craftRaw(command: String)
+  <span class="ck">case</span> renameDevice(name: String)
+
+  <span class="ck">var</span> rawValue: String {
+    <span class="ck">switch self</span> {
+    <span class="ck">case</span> .cancel:             <span class="ck">return</span> <span class="cs">"202"</span>
+    <span class="ck">case</span> .flushStation(<span class="ck">let</span> n): <span class="ck">return</span> <span class="cs">"227,\(n),"</span>
+    <span class="ck">case</span> .stopDispense:       <span class="ck">return</span> <span class="cs">"227,222,"</span>
+    <span class="ck">case</span> .renameDevice(<span class="ck">let</span> s): <span class="ck">return</span> <span class="cs">"241\(s)"</span>
+    }
+  }
+}`,
+ conn:['ble-hardware','ble-opcodes','crafting','control-center','ble-manager','station-cleaning'],
+ guide:`<div class="gs"><div class="gt">Add a new firmware command</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add new <code>case</code> to <code>BleCommand</code> enum in BleCommand.swift</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Return the exact firmware string in the <code>rawValue</code> switch statement</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Send via <code>BLEManager.shared.sendCommand(BleCommand.yourCase.rawValue)</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Opcode 227 (flush) requires trailing comma; opcode 241 (rename) has NO comma — match firmware spec exactly</span></div></div></div>`}
+
+,{id:'qr-scanner',l:'QR Scanner (BarBot)',cat:'ios',sz:3,rel:.75,cl:'Swift',
+ desc:'QrViewController manages QR code scanning via QRScanner library with AVFoundation. Requests camera permissions via AVCaptureDevice.requestAccess, validates scanned codes for "barsys" or "barsys_360" device name prefixes, and initiates SocketManager connection to the scanned device. Used in BarBot flow for pairing devices by scanning their QR label.',
+ code:`<span class="ck">func</span> checkAuthorizationAndShowCamera() {
+  <span class="ck">let</span> status = AVCaptureDevice.authorizationStatus(for: .video)
+  <span class="ck">switch</span> status {
+  <span class="ck">case</span> .denied:
+    showDisabledCameraAlert()
+  <span class="ck">case</span> .notDetermined:
+    AVCaptureDevice.requestAccess(for: .video) { granted <span class="ck">in</span>
+      DispatchQueue.main.async {
+        <span class="ck">if</span> granted { <span class="ck">self</span>.setupQRScannerView() }
+        <span class="ck">else</span> { <span class="ck">self</span>.showDisabledCameraAlert() }
+      }
+    }
+  <span class="ck">case</span> .authorized: <span class="ck">self</span>.setupQRScannerView()
+  <span class="ck">default</span>: <span class="ck">break</span>
+  }
+}`,
+ conn:['ios-app','device-pairing-ui','ble-hardware','barbot','scanner'],
+ guide:`<div class="gs"><div class="gt">Support a new device type in QR scanning</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add new prefix to the device name validation check (currently "barsys" and "barsys_360")</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Update <code>SocketManager.connect(deviceName:)</code> with new device name mapping</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Add NSCameraUsageDescription to Info.plist if not already present</span></div><div class="gstep hl"><span class="gsn">4</span><span class="gst">Always test on physical device — AVCaptureSession does not run in simulator</span></div></div></div>`}
+
+,{id:'haptic-service',l:'Haptic Service',cat:'ios',sz:3,rel:.7,cl:'Swift',
+ desc:'@MainActor-isolated singleton in HapticService.swift pre-warming UIImpactFeedbackGenerator (light/medium/heavy) and UINotificationFeedbackGenerator instances for minimal-latency tactile feedback. All methods guarded by isEnabled flag that reads from user preferences. Called throughout crafting flow, BLE connection events, and interaction confirmations.',
+ code:`<span class="cm">@MainActor</span>
+<span class="ck">final class</span> HapticService {
+  <span class="ck">static let</span> shared = HapticService()
+  <span class="ck">private let</span> lightImpact  = UIImpactFeedbackGenerator(style: .light)
+  <span class="ck">private let</span> mediumImpact = UIImpactFeedbackGenerator(style: .medium)
+  <span class="ck">private let</span> notification = UINotificationFeedbackGenerator()
+  <span class="ck">var</span> isEnabled: Bool = <span class="ck">true</span>
+
+  <span class="ck">func</span> light() {
+    <span class="ck">guard</span> isEnabled <span class="ck">else</span> { <span class="ck">return</span> }
+    lightImpact.impactOccurred()
+    lightImpact.prepare()
+  }
+  <span class="ck">func</span> success() {
+    <span class="ck">guard</span> isEnabled <span class="ck">else</span> { <span class="ck">return</span> }
+    notification.notificationOccurred(.success)
+  }
+}`,
+ conn:['ios-app','crafting','drink-complete','ble-manager','control-center'],
+ guide:`<div class="gs"><div class="gt">Add haptics to a new user interaction</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Use <code>HapticService.shared.light()</code> for tap, <code>.medium()</code> for confirmations, <code>.heavy()</code> for hard stops</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Use <code>.success()</code> / <code>.error()</code> / <code>.warning()</code> for outcome notifications (e.g. pour complete)</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Check <code>isEnabled</code> flag — it reads from user Settings, do not bypass it</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Must be called from @MainActor context — UIImpactFeedbackGenerator requires the main thread</span></div></div></div>`}
+
+,{id:'request-cancellation-manager',l:'Request Cancellation',cat:'ios',sz:3,rel:.75,cl:'Swift',
+ desc:'Thread-safe @unchecked Sendable singleton managing URLSessionDataTask lifecycles keyed by CancellationToken strings. NSLock-protected dictionary tracks active tasks per screen scope. Provides bulk cancel per token and marks cancelled tokens to suppress queued callbacks from completing out-of-order after navigation away.',
+ code:`<span class="ck">final class</span> RequestCancellationManager: <span class="cm">@unchecked Sendable</span> {
+  <span class="ck">static let</span> shared = RequestCancellationManager()
+  <span class="ck">private let</span> lock = NSLock()
+  <span class="ck">private var</span> activeTasks: [String: Set<WeakTaskWrapper>] = [:]
+  <span class="ck">private var</span> cancelledTokens: Set<String> = []
+
+  <span class="ck">func</span> register(_ task: URLSessionDataTask, for token: CancellationToken) {
+    lock.lock(); <span class="ck">defer</span> { lock.unlock() }
+    cancelledTokens.remove(token.identifier)
+    <span class="ck">var</span> set = activeTasks[token.identifier] ?? []
+    set = set.filter { $0.task?.state != .completed }
+    set.insert(WeakTaskWrapper(task))
+    activeTasks[token.identifier] = set
+  }
+  <span class="ck">func</span> cancelAll(for token: CancellationToken) {
+    lock.lock(); <span class="ck">defer</span> { lock.unlock() }
+    activeTasks[token.identifier]?.forEach { $0.task?.cancel() }
+    cancelledTokens.insert(token.identifier)
+  }
+}`,
+ conn:['ios-app','defteros','local-db','recipe-browse','barbot'],
+ guide:`<div class="gs"><div class="gt">Cancel all requests when leaving a screen</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Create a <code>CancellationToken</code> scoped to the ViewController (e.g. its class name as identifier)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Register each URLSessionDataTask: <code>RequestCancellationManager.shared.register(task, for: token)</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Call <code>RequestCancellationManager.shared.cancelAll(for: token)</code> in <code>viewWillDisappear</code></span></div><div class="gstep hl"><span class="gsn">4</span><span class="gst">Check <code>isCancelled(token:)</code> in completion handlers to suppress stale UI updates after pop</span></div></div></div>`}
+
+// ── Android App ───────────────────────────────────────────────────
+,{id:'ota-firmware-update',l:'OTA Firmware Update',cat:'android',sz:5,rel:.9,cl:'Kotlin',
+ desc:'ForegroundService.kt manages OTA firmware flashing via chunked BLE data transfer. Splits firmware binary into MTU-sized blocks, prefixes data frames with 0xFB marker byte and sequence index, sends completion frame 0xFC with total size and position bytes. Runs as Android foreground service with persistent notification to survive app backgrounding during the flash process.',
+ code:`<span class="ck">fun</span> sendData(context: Context, pos: Int) {
+  <span class="ck">val</span> data = File(File(context.cacheDir, <span class="cs">"data"</span>), <span class="cs">"data\${pos}.bin"</span>).readBytes()
+  <span class="ck">val</span> total = data.size / mtu
+  <span class="ck">for</span> (x <span class="ck">in</span> <span class="cn">0</span> until total) {
+    <span class="ck">val</span> arr = ByteArray(mtu + <span class="cn">2</span>)
+    arr[<span class="cn">0</span>] = (<span class="cn">0xFB</span>).toByte()  <span class="cc">// data frame marker</span>
+    arr[<span class="cn">1</span>] = x.toByte()
+    <span class="ck">for</span> (y <span class="ck">in</span> <span class="cn">0</span> until mtu) arr[y+<span class="cn">2</span>] = data[(x*mtu)+y]
+    sendData(arr)
+  }
+  <span class="cc">// completion frame: 0xFC + size + position</span>
+  <span class="ck">val</span> done = byteArrayOfInts(<span class="cn">0xFC</span>,
+    data.size/<span class="cn">256</span>, data.size%<span class="cn">256</span>, pos/<span class="cn">256</span>, pos%<span class="cn">256</span>)
+  <span class="ck">val</span> pct = ((pos.toFloat() / parts) * <span class="cn">100</span>).toInt()
+  transmitData(done, pct, context)
+}`,
+ conn:['android-ble-service','notification-channels','ble-hardware','ble-opcodes'],
+ guide:`<div class="gs"><div class="gt">Trigger an OTA firmware update</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Download firmware binary to <code>context.cacheDir/data/</code> before starting service</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Start via <code>startForegroundService(Intent(this, ForegroundService::class.java))</code> — required Android O+</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Monitor progress via <code>transmitData</code> callback — percentage is <code>pos/parts * 100</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Never cancel the foreground service mid-flash — partial firmware writes will brick the device</span></div></div></div>`}
+
+,{id:'android-ble-service',l:'Android BLE Service',cat:'android',sz:5,rel:.9,cl:'Kotlin',
+ desc:'BluetoothService.kt bound service managing BLE device discovery and connection lifecycle via BroadcastReceiver for barsys.coaster.connected/disconnected and BluetoothAdapter state change intents. Provides foreground service integration with IMPORTANCE_LOW persistent notification during scanning, automatic reconnection, and lifecycle-aware BLE scanning for Coaster 2.0.',
+ code:`<span class="ck">override fun</span> onCreate() {
+  <span class="ck">super</span>.onCreate()
+  <span class="ck">val</span> filter = IntentFilter().apply {
+    addAction(<span class="cs">"barsys.coaster.connected"</span>)
+    addAction(<span class="cs">"barsys.coaster.disconnected"</span>)
+    addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+  }
+  myReceiver = MyReceiver()
+  <span class="ck">if</span> (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    registerReceiver(myReceiver, filter, RECEIVER_EXPORTED)
+  } <span class="ck">else</span> { registerReceiver(myReceiver, filter) }
+}
+<span class="ck">override fun</span> onBind(intent: Intent): IBinder = mBinder`,
+ conn:['ota-firmware-update','notification-channels','ble-hardware','device-pairing-ui','ble-opcodes'],
+ guide:`<div class="gs"><div class="gt">Bind to BLE service from an Activity</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Define <code>ServiceConnection</code> in Activity, cast binder to <code>BluetoothService.LocalBinder</code> in <code>onServiceConnected</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>bindService(Intent(this, BluetoothService::class.java), connection, BIND_AUTO_CREATE)</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Register BroadcastReceiver for <code>barsys.coaster.connected/disconnected</code> to track connection state</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Always call <code>unbindService</code> in <code>onStop</code> — leaking the binding causes ANR and memory leaks</span></div></div></div>`}
+
+,{id:'fcm-push-notifications',l:'FCM Push (Android)',cat:'android',sz:3,rel:.7,cl:'Kotlin',
+ desc:'Firebase Cloud Messaging configured via firebase-messaging-ktx 23.4.1 in BarsysApplication with FirebaseApp.initializeApp(). FCM token registration logic exists in BaseActivity.updateDeviceToken() targeting POST /user/updatedevicetoken but is currently commented out. Infrastructure is wired (google-services.json present) but push delivery is not active in production.',
+ code:`<span class="cc">// BaseActivity.kt — token registration (currently disabled)</span>
+<span class="ck">open fun</span> updateDeviceToken(context: Context?, tag: String?) {
+  <span class="cc">/* TODO: enable for production push</span>
+  <span class="cc">FirebaseMessaging.getInstance().getToken()</span>
+  <span class="cc">  .addOnCompleteListener { task -></span>
+  <span class="cc">    val token = task.getResult()</span>
+  <span class="cc">    val model = PushModel(uId, accessToken, uniqueID, "0", token)</span>
+  <span class="cc">    apiService.allPostServiceCall(</span>
+  <span class="cc">      "user/updatedevicetoken", model, accessToken) */</span>
+}
+<span class="cc">// BarsysApplication.kt</span>
+<span class="ck">class</span> BarsysApplication : Application() {
+  <span class="ck">override fun</span> onCreate() {
+    <span class="ck">super</span>.onCreate(); FirebaseApp.initializeApp(<span class="ck">this</span>)
+  }
+}`,
+ conn:['push-notifications-api','android-ble-service','notification-channels'],
+ guide:`<div class="gs"><div class="gt">Activate FCM token registration</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Uncomment <code>updateDeviceToken</code> body in BaseActivity.kt</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Create <code>MyFirebaseMessagingService : FirebaseMessagingService</code>, override <code>onNewToken</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Register service in AndroidManifest.xml with <code>com.google.firebase.MESSAGING_EVENT</code> intent filter</span></div><div class="gstep hl"><span class="gsn">4</span><span class="gst">Backend endpoint: POST /user/updatedevicetoken with PushModel {userId, accessToken, uniqueId, platform:"android", token}</span></div></div></div>`}
+
+,{id:'notification-channels',l:'Notification Channels',cat:'android',sz:3,rel:.75,cl:'Kotlin',
+ desc:'Dual-priority NotificationChannel implementation for Android O+ (API 26+). ForegroundService creates IMPORTANCE_HIGH channels with lights and vibration for OTA flashing progress; BluetoothService creates IMPORTANCE_LOW silent channels for BLE scanning status. Channel IDs: "BarsysCoaster" (BLE scanning), application package ID (OTA updates).',
+ code:`<span class="cm">@TargetApi(Build.VERSION_CODES.O)</span>
+<span class="ck">private fun</span> notificationChannel(priority: Boolean, ctx: Context): NotificationManager {
+  <span class="ck">val</span> mgr = ctx.getSystemService(NOTIFICATION_SERVICE) <span class="ck">as</span> NotificationManager
+  <span class="ck">if</span> (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    <span class="ck">val</span> ch = <span class="ck">if</span> (priority) {
+      NotificationChannel(CHANNEL, BuildConfig.APPLICATION_ID, IMPORTANCE_HIGH)
+        .also { it.enableLights(<span class="ck">true</span>); it.enableVibration(<span class="ck">true</span>) }
+    } <span class="ck">else</span> {
+      NotificationChannel(CHANNEL, BuildConfig.APPLICATION_ID, IMPORTANCE_MIN)
+        .also { it.enableLights(<span class="ck">false</span>); it.setSound(<span class="ck">null</span>, <span class="ck">null</span>) }
+    }
+    mgr.createNotificationChannel(ch)
+  }
+  <span class="ck">return</span> mgr
+}`,
+ conn:['ota-firmware-update','android-ble-service','fcm-push-notifications'],
+ guide:`<div class="gs"><div class="gt">Add a new notification channel</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Choose priority: <code>IMPORTANCE_HIGH</code> for user-alerting, <code>IMPORTANCE_LOW</code> for silent background ops</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Create channel in <code>Application.onCreate()</code> — channels persist device-wide after first creation</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Use a unique <code>NOTIFICATION_CHANNEL_ID</code> string — reusing an existing ID silently ignores any changes</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Channel importance cannot be changed after creation — the user controls it in device Settings</span></div></div></div>`}
+
 ];
 
 
@@ -1867,15 +2080,15 @@ const CAT_COLORS = {
   ios:'var(--c-ios)',backend:'var(--c-backend)',data:'var(--c-data)',
   infra:'var(--c-infra)',ble:'var(--c-ble)'
 };
-const CAT_RAW_DARK={ios:'#4A9EE8',backend:'#F0B840',data:'#C46EC8',infra:'#3EC996',ble:'#3ECFCF'};
-const CAT_RAW_LIGHT={ios:'#1a6eaa',backend:'#b07c10',data:'#8a3a90',infra:'#1a8c60',ble:'#1a8c8c'};
+const CAT_RAW_DARK={ios:'#4A9EE8',backend:'#F0B840',data:'#C46EC8',infra:'#3EC996',ble:'#3ECFCF',android:'#3DDC84'};
+const CAT_RAW_LIGHT={ios:'#1a6eaa',backend:'#b07c10',data:'#8a3a90',infra:'#1a8c60',ble:'#1a8c8c',android:'#1a7a38'};
 const CAT_RAW={...CAT_RAW_DARK};
 const CAT_LABELS = {
   ios:'iOS App',backend:'Backend API',data:'Data & Models',
-  infra:'Infrastructure',ble:'BLE / Hardware'
+  infra:'Infrastructure',ble:'BLE / Hardware',android:'Android App'
 };
-const CAT_SHAPE = {ios:'hex',backend:'diamond',data:'hex',infra:'tri',ble:'diamond'};
-const CAT_ORDER = ['ios','backend','data','infra','ble'];
+const CAT_SHAPE = {ios:'hex',backend:'diamond',data:'hex',infra:'tri',ble:'diamond',android:'tri'};
+const CAT_ORDER = ['ios','backend','data','infra','ble','android'];
 const SHAPE_CHAR = {hex:'⬡',diamond:'◇',tri:'△'};
 
 const GH = 'https://github.com/barsysindia/barsys-ai-app-ios/blob/main/';
