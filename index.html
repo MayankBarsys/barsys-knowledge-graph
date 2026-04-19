@@ -2284,6 +2284,7 @@ function selectNode(id){
 }
 function closePanel(){document.getElementById('dp').classList.remove('on');sel=null;}
 function toggleSearch(){
+  clearTimeout(_searchTimer);_searchReqId++;
   const sov=document.getElementById('sov');sov.classList.toggle('on');
   if(sov.classList.contains('on')){
     const inp=document.getElementById('si');
@@ -2411,6 +2412,7 @@ function scoreAndRank(words){
 function buildAnswer(q,nodes,words){return null;} // replaced by AI
 
 let KG_API_KEY=sessionStorage.getItem('kg_api_key')||'';
+let _searchTimer=null,_searchReqId=0;
 
 function saveKey(){
   const inp=document.getElementById('kg-key-inp');
@@ -2571,13 +2573,14 @@ function getConnLabels(n,top){
 async function doSearch(q){
   const srl=document.getElementById('srl');
   const mb=document.getElementById('s-mode-badge');
-  if(!q.trim()){srl.innerHTML='';mb.textContent='';mb.className='s-mode';return;}
+  if(!q.trim()){srl.innerHTML='';mb.textContent='';mb.className='s-mode';clearTimeout(_searchTimer);return;}
 
   const words=q.toLowerCase().split(/[\s\W]+/).filter(w=>w.length>2&&!STOP.has(w));
   const qmode=isQuestion(q)||q.length>25;
 
   if(qmode){
     mb.textContent='AI SEARCH';mb.className='s-mode qa';
+    clearTimeout(_searchTimer);
 
     if(!KG_API_KEY){
       srl.innerHTML='<div class="qa-answer">'
@@ -2591,22 +2594,27 @@ async function doSearch(q){
       return;
     }
 
-    // Loading state
-    srl.innerHTML='<div class="qa-answer">'
-      +'<div class="qa-alabel">AI Search</div>'
-      +'<div class="qa-atext">Searching knowledge graph<span class="kg-dots"><span>.</span><span>.</span><span>.</span></span></div>'
-      +'</div>';
-
-    try{
-      const answer=await callClaudeSearch(q);
-      renderAIAnswer(answer,words,srl);
-    }catch(e){
+    // Debounce: wait 600ms after user stops typing before calling API
+    srl.innerHTML='';
+    _searchTimer=setTimeout(async()=>{
+      const reqId=++_searchReqId;
       srl.innerHTML='<div class="qa-answer">'
-        +'<div class="qa-alabel" style="color:#c46">Error</div>'
-        +'<div class="qa-atext" style="color:#c46">'+e.message+'</div>'
-        +(e.message.includes('401')||e.message.includes('invalid')?'<div style="margin-top:8px"><button class="kg-key-btn" onclick="showKeyPrompt()">RE-ENTER KEY</button></div>':'')
+        +'<div class="qa-alabel">AI Search</div>'
+        +'<div class="qa-atext">Searching knowledge graph<span class="kg-dots"><span>.</span><span>.</span><span>.</span></span></div>'
         +'</div>';
-    }
+      try{
+        const answer=await callClaudeSearch(q);
+        if(reqId!==_searchReqId)return;
+        renderAIAnswer(answer,words,srl);
+      }catch(e){
+        if(reqId!==_searchReqId)return;
+        srl.innerHTML='<div class="qa-answer">'
+          +'<div class="qa-alabel" style="color:#c46">Error</div>'
+          +'<div class="qa-atext" style="color:#c46">'+e.message+'</div>'
+          +(e.message.includes('401')||e.message.includes('invalid')?'<div style="margin-top:8px"><button class="kg-key-btn" onclick="showKeyPrompt()">RE-ENTER KEY</button></div>':'')
+          +'</div>';
+      }
+    },600);
   } else {
     mb.textContent='NODE SEARCH';mb.className='s-mode';
     const ranked=scoreAndRank(words);
