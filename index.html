@@ -330,7 +330,7 @@ letter-spacing:1px;text-align:center}
 const N=[
 
 // ── iOS App Features ─────────────────────────────
-{id:'ios-app',l:'iOS App',cat:'ios',sz:8,rel:1,
+{id:'ios-app',l:'iOS App',cat:'ios',sz:8,rel:1,cl:'Swift',
  desc:'Barsys AI production iOS app. UIKit + MVVM. Targets iPhone only. Navigation via UIStoryboard + TabBarController + UINavigationController with VC extension helpers. No Alamofire — raw URLSession.shared.dataTask(). Staging base URLs (current build): baseUrl=https://ci.api-ng.barsys.com/api/, baseUrlForBarBot=https://ci.barbot.barsys.com/, baseUrlForRecipes=Defteros Cloud Run staging. Ory: https://ci.iam.auth.barsys.com/self-service/. BarBot SSE: ci.bond-cof.barsys.com/api/. Braze SDK integrated (AppDelegate, API key d5beb9b6-9499-4213-b4dd-f36322e1d444, endpoint sdk.iad-07.braze.com). SSL-pins api-ng.barsys.com + ci.bond-mvp1.barsys.com via SSLPinningManager.swift.',
  code:`<span class="cc">// ApiConstants.swift — production base URLs</span>
 <span class="ck">let</span> baseUrl = <span class="cs">"https://api-ng.barsys.com/api/"</span>
@@ -350,7 +350,7 @@ URLSession.shared.dataTask(with: request) { data, response, error in
  conn:['auth-flow','recipe-browse','mixlists','my-bar','barbot','crafting','scanner','defteros','ory','bond'],
  guide:`<div class="gs"><div class="gt">Add a new tab</div><div class="gsteps"><div class="gstep hl"><span class="gsn">1</span><span class="gst">Create VC + Coordinator pair</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Register in <code>TabBarCoordinator.setupTabs()</code></span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">Add tab icon to Assets.xcassets</span></div></div></div>`},
 
-{id:'auth-flow',l:'Auth Flow',cat:'ios',sz:6,rel:1,
+{id:'auth-flow',l:'Auth Flow',cat:'ios',sz:6,rel:1,cl:'Swift',
  desc:'Ory Kratos OTP auth flow. LoginSignUpOryApiService.swift drives phone OTP + Apple/Google SSO via Ory self-service flows. Auth tokens stored in KEYCHAIN via KeychainHelper.swift — 11 keys: session_token, accessToken, userId, user_phone, user_email, user_dob, name, countryName, deviceId, sessionId, user_Profile_image. On launch, AppCoordinator checks Keychain session_token to decide auth vs main flow. Network 401/expired-session triggers triggerSessionExpirationLogout() which clears all 11 Keychain keys.',
  code:`<span class="cc">// KeychainHelper.swift — 11 Keychain keys</span>
 <span class="ck">class</span> KeychainHelper {
@@ -369,7 +369,7 @@ URLSession.shared.dataTask(with: request) { data, response, error in
  conn:['ios-app','ory','defteros','sqlite-cache'],
  guide:`<div class="gs"><div class="gt">Handle session expiry</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">NetworkingUtility checks for 401 or <code>"expired session token"</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Do NOT retry — call <code>triggerSessionExpirationLogout()</code> immediately</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Clear all Keychain keys, pop to LoginVC</span></div></div></div>`},
 
-{id:'recipe-browse',l:'Recipe Browse',cat:'ios',sz:6,rel:1,
+{id:'recipe-browse',l:'Recipe Browse',cat:'ios',sz:6,rel:1,cl:'Swift',
  desc:'Primary content surface. SQLite-first: all display reads from local recipes table, never directly from API. Delta sync via GET /cache/recipes?timestamp= — only records updated after the last stored timestamp are returned. Screen hierarchy: ExploreRecipes → RecipePage → CraftingVC → DrinkCompleteVC. Favourites + My Drinks under separate tabs. barsys360Compatible flag filters 360-craftable recipes.',
  code:`<span class="cc">// Delta sync — SQLite first pattern</span>
 <span class="ck">let</span> ts = UserDefaults.getUpdatedDataTimeStamp()
@@ -386,7 +386,7 @@ UserDefaults.saveNewTimestamp(Date())
  conn:['ios-app','sqlite-cache','defteros','crafting','my-bar'],
  guide:`<div class="gs"><div class="gt">Force full recipe resync</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Clear UserDefaults timestamp key</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>GET /cache/recipes</code> with no timestamp param</span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">All records returned — SQLite fully replaced</span></div></div></div>`},
 
-{id:'mixlists',l:'MixLists',cat:'ios',sz:6,rel:.95,
+{id:'mixlists',l:'MixLists',cat:'ios',sz:6,rel:.95,cl:'Swift',
  desc:'Curated cocktail collections. iOS is READ-ONLY — MixlistViewController displays system mixlists (user_id IS NULL) fetched via DBManager.shared.fetchMixlists(). Delta-sync: GET /cache/mixlists?timestamp=. Backend supports POST /my/mixlists but iOS has no creation UI. barsys360Compatible auto-set to true if recipe count ≤ 6. Deep link scheme declared (barsysapp://) but routing NOT implemented. Visibility rule: user_id IS NULL = system/shared, user_id != NULL = user-private.',
  code:`<span class="cc">// Create mixlist</span>
 <span class="cm">POST</span> /my/mixlists {
@@ -402,7 +402,7 @@ UserDefaults.saveNewTimestamp(Date())
  conn:['ios-app','sqlite-cache','defteros'],
  guide:`<div class="gs"><div class="gt">Add recipe to mixlist</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">PATCH /my/mixlists/:id with full <code>cocktails[]</code> array</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">No granular add/remove — always send full array</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Async MySQL sync fires on backend automatically</span></div></div></div>`},
 
-{id:'my-bar',l:'MyBar / Stations',cat:'ios',sz:6,rel:1,
+{id:'my-bar',l:'MyBar / Stations',cat:'ios',sz:6,rel:1,cl:'Swift',
  desc:'No standalone MyBar list screen — inventory IS the station slots (A–F). Primary screen: StationsMenuViewController in Control Center tab. Three ingredient input paths: (1) Camera/AI scan → Bond image API → confirm → PUT /stations/:s, (2) BLE notification (getStationsDataNotif) → direct station update, (3) Bulk setup from mixlist or device pairing → PATCH /devices. Global state: globalStationArray: [StationCleaningFlow] drives recipe availability, craft validation, perishable checks.',
  code:`<span class="cc">// Station slot structure (A–F)</span>
 <span class="ck">struct</span> StationSlot {
@@ -418,7 +418,7 @@ UserDefaults.saveNewTimestamp(Date())
  conn:['ios-app','defteros','ble-hardware','crafting','recipe-browse'],
  guide:`<div class="gs"><div class="gt">Ingredient not matching recipe</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Check <code>globalStationArray</code> category.primary + secondary match</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Backend availability filter uses same category pair logic</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Spelling must match exactly — "Vodka" ≠ "vodka"</span></div></div></div>`},
 
-{id:'barbot',l:'BarBot AI',cat:'ios',sz:6,rel:.95,
+{id:'barbot',l:'BarBot AI',cat:'ios',sz:6,rel:.95,cl:'Swift',
  desc:'Production uses blocking URLSession.dataTask POST — NOT SSE. SSE only on feature/barbot-sse-migration branch. Base URL: ci.bond-mvp1.barsys.com. Session: new = Date().timeIntervalSince1970_deviceId, resume = stored historySessionId. Action card types: chat (send follow-up), craft (BLE pour), device (redirect flows), shop (WebView). BarBot fields lost on recipe save: difficulty, preparationTime, totalTime, servingSize, garnish.',
  code:`<span class="cc">// Chat request body</span>
 {
@@ -438,7 +438,7 @@ UserDefaults.saveNewTimestamp(Date())
  conn:['ios-app','bond','crafting','defteros'],
  guide:`<div class="gs"><div class="gt">Save BarBot recipe</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">POST /my/recipes with RecipeElement fields</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Fields lost: difficulty, prepTime, totalTime, servingSize, garnish — not in iOS Recipe struct</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Recipe saves as user recipe with <code>origin: "barbot"</code></span></div></div></div>`},
 
-{id:'crafting',l:'Crafting Flow',cat:'ios',sz:6,rel:1,
+{id:'crafting',l:'Crafting Flow',cat:'ios',sz:6,rel:1,cl:'Swift',
  desc:'CraftingViewController state machine: idle → waitingForGlass → dispensing → awaitingGlassRemoval → completed. BarBotCraftingViewController adds cancel path: cancelling → cancelledWaitingForGlass → cancelAcknowledged → dismiss. BLE command formats: Coaster/Shaker = "200,q1,...,q14" (14 slots), Barsys 360 = "200,s1,q1,...,sN,qN,0,...,0" (station-qty pairs). Post-craft: PATCH /devices to reduce station quantities from BLE quantityFeedback (opcode 222 response). Also records POST /analytics drink_mixed event.',
  code:`<span class="cc">// Barsys 360 pour command (opcode 200)</span>
 <span class="cc">// Station-qty pairs, zero-padded to 14 values</span>
@@ -454,7 +454,7 @@ UserDefaults.saveNewTimestamp(Date())
  conn:['ios-app','ble-hardware','defteros','my-bar','barbot'],
  guide:`<div class="gs"><div class="gt">Handle glass-lift during pour</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Receive BLE <code>219,405</code> (glass lifted, pump stopped)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Show "Replace glass" UI — device polls <code>219,402</code></span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">Receive <code>219,401</code> (replaced) → resume dispensing</span></div></div></div>`},
 
-{id:'scanner',l:'Scanner / Vision',cat:'ios',sz:5,rel:.85,
+{id:'scanner',l:'Scanner / Vision',cat:'ios',sz:5,rel:.85,cl:'Swift',
  desc:'Camera-based ingredient detection via Bond image API (ci.bond.barsys.com/api/image/multipart — different subdomain from BarBot). DeviceDetectedPopUpVc confirms AI detections before writing to stations. scan-merge endpoint for bulk bar population from scanner results. Shopping list and discovery endpoints use bar contents to generate AI recommendations.',
  code:`<span class="cc">// Image multipart upload to Bond</span>
 <span class="cm">POST</span> ci.bond.barsys.com/api/image/multipart
@@ -470,7 +470,7 @@ UserDefaults.saveNewTimestamp(Date())
  guide:`<div class="gs"><div class="gt">Bond vs Defteros image endpoints</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">Scanner uses <code>ci.bond.barsys.com</code> (no hyphen-mvp1)</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">BarBot uses <code>ci.bond-mvp1.barsys.com</code> — different subdomain</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Both are Bond services but different deployments</span></div></div></div>`},
 
 // ── Backend ────────────────────────────────────────
-{id:'defteros',l:'Defteros',cat:'backend',sz:8,rel:1,
+{id:'defteros',l:'Defteros',cat:'backend',sz:8,rel:1,cl:'Go',
  desc:'Primary Barsys backend service. Go 1.23 + Echo v4. Deployed on GCP Cloud Run (staging: defteros-service-staging-47447659942.us-central1.run.app). Port :8080. 55 PostgreSQL migrations. Rate limits: auth=5/min, write=30/min, read=100/min. Auth: validates Ory session tokens via GET {ORY_BASE_URI}/sessions/whoami + local ory_token_cache table for performance. RS256 JWT issued post token-exchange for newer clients. ISADMIN env flag enables admin-only routes.',
  code:`<span class="cc">// Go + Echo v4 — main route registration</span>
 <span class="ck">e</span> := echo.New()
@@ -488,7 +488,7 @@ my.GET(<span class="cs">"/devices"</span>, deviceHandler.ListMy)`,
  conn:['ios-app','recipes-api','mixlists-api','mybar-api','devices-api','analytics-api','profile-api','party-api','social-api','postgres','mysql','pubsub','ory','gcs'],
  guide:`<div class="gs"><div class="gt">Add new endpoint</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Create handler in <code>internal/handlers/</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Register route in <code>internal/application/app.go</code></span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">Add middleware: <code>JWTMiddleware</code>, <code>OryMiddleware</code>, or none</span></div></div></div>`},
 
-{id:'recipes-api',l:'Recipes API',cat:'backend',sz:6,rel:1,
+{id:'recipes-api',l:'Recipes API',cat:'backend',sz:6,rel:1,cl:'Go',
  desc:'Cocktail recipe CRUD under /api/v1/ and /api/v1/my/recipes. Public: GET /recipes, GET /recipes/search, GET /recipes/:id. Auth (JWT): same plus POST /my/recipes, favorites. Admin-only: POST /recipes (create), PUT /recipes/:id. Ratings at POST /my/recipes/:id/ratings. Delta-sync at GET /cache/recipes?timestamp=. Dual-read: PostgreSQL (canonical) + MySQL (legacy fallback). Full-text search via tsvector. No /recipes/available or /ready-to-pour backend route — availability is computed iOS-side.',
  code:`<span class="cc">// cocktail_handler.go + recipe_handler.go</span>
 GET  /api/v1/recipes              <span class="cc">// public list</span>
@@ -508,7 +508,7 @@ PUT  /api/v1/recipes/:id          <span class="cc">// update</span>`,
  conn:['defteros','postgres','mysql','pubsub','gcs','sqlite-cache'],
  guide:`<div class="gs"><div class="gt">Pub/Sub flow for AI recipes</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">POST /recipes/flat with <code>flat_recipe_content</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Backend publishes to <code>FULL_RECIPE</code> topic</span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">Downstream consumer enriches → updates <code>is_flat=false</code></span></div></div></div>`},
 
-{id:'mixlists-api',l:'MixLists API',cat:'backend',sz:5,rel:.95,
+{id:'mixlists-api',l:'MixLists API',cat:'backend',sz:5,rel:.95,cl:'Go',
  desc:'System mixlists (user_id IS NULL) and user mixlists. GET /cache/mixlists?timestamp= returns all with embedded recipes and is_favorite bool. PATCH replaces full cocktails[] array — no granular add/remove. Soft-delete via is_deleted flag. MySQL async sync on create/update/delete. MixlistItems ordered by position integer.',
  code:`<span class="cc">// Cache endpoint returns embedded recipes</span>
 {
@@ -523,7 +523,7 @@ PUT  /api/v1/recipes/:id          <span class="cc">// update</span>`,
  conn:['defteros','postgres','mysql'],
  guide:`<div class="gs"><div class="gt">Reorder recipes in mixlist</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">No position update endpoint — PATCH with full sorted <code>cocktails[]</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Position is set by array order on write</span></div></div></div>`},
 
-{id:'mybar-api',l:'MyBar API',cat:'backend',sz:5,rel:.95,
+{id:'mybar-api',l:'MyBar API',cat:'backend',sz:5,rel:.95,cl:'Go',
  desc:'Two parallel inventory systems. V4.1 (my_bar_items → products → categories) and legacy flat bar table. GET /my/bar returns legacy flat items (base/mixer split). V4.1 items exposed via /ingredients/ endpoints and used for availableOnly recipe filtering. POST /my/bar batch-adds with partial success (207). scan-merge merges scanner detections. Shopping list and discovery endpoints are AI-powered recommendations.',
  code:`<span class="cc">// V4.1 availability filter (recipe GET)</span>
 <span class="cc">// Checks BOTH systems simultaneously:</span>
@@ -543,7 +543,7 @@ PUT  /api/v1/recipes/:id          <span class="cc">// update</span>`,
  conn:['defteros','postgres','mysql'],
  guide:`<div class="gs"><div class="gt">Tech debt: dual bar systems</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">V4.1 (my_bar_items) and legacy (bar table) coexist</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Scanner/batch-add still writes to legacy bar table</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">availableOnly filter reads BOTH — bridging logic in SQL</span></div></div></div>`},
 
-{id:'devices-api',l:'Devices API',cat:'backend',sz:5,rel:1,
+{id:'devices-api',l:'Devices API',cat:'backend',sz:5,rel:1,cl:'Go',
  desc:'Device registration, station config, and crafting sessions. Station update (PUT/PATCH) triggers StationConfig Pub/Sub. Device type inferred from BLE name prefix: BARSYS_S* = shaker-pro, BARSYS_360* / BARSYS360B* = barsys-360, BARSYS_CST2* / CH2* = coaster. V4.1 StationSlotHandler links products to stations. CraftingSessionHandler tracks craft lifecycle server-side. Firmware check endpoint for OTA updates.',
  code:`<span class="cc">// Station update → Pub/Sub</span>
 <span class="cm">PUT</span> /devices/device-number/{n}/stations/{s}
@@ -557,7 +557,7 @@ PUT  /api/v1/recipes/:id          <span class="cc">// update</span>`,
  conn:['defteros','postgres','pubsub','ble-hardware'],
  guide:`<div class="gs"><div class="gt">Station config not reaching hardware</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Verify PUT /stations returns 200</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Check STATION_CONFIG Pub/Sub topic in GCP console</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Quantity post-pour is best-effort — crash = stale backend state</span></div></div></div>`},
 
-{id:'analytics-api',l:'Analytics API',cat:'backend',sz:4,rel:.85,
+{id:'analytics-api',l:'Analytics API',cat:'backend',sz:4,rel:.85,cl:'Go',
  desc:'POST /analytics accepts MySQL token OR Ory JWT (backward compat). Stores to analytics_events table with full device/user context. Key hardware events: device_connected (firmware_version, signal_strength), drink_mixed (recipe_id, ingredients[], result, duration, volume_ml), recipe_created. PII fields stored: user_pii_email/phone/firstname/lastname. GDPR note: PII in analytics_events warrants attention.',
  code:`<span class="cc">// Analytics event structure</span>
 {
@@ -575,7 +575,7 @@ PUT  /api/v1/recipes/:id          <span class="cc">// update</span>`,
  conn:['defteros','postgres','mysql'],
  guide:`<div class="gs"><div class="gt">Auth mismatch bug</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">iOS sends Ory JWT but some paths still validate against MySQL token</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Backend accepts BOTH — dual validation middleware</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Verify analytics reach DB via <code>SELECT * FROM analytics_events ORDER BY created_at DESC</code></span></div></div></div>`},
 
-{id:'profile-api',l:'Profile API',cat:'backend',sz:4,rel:.9,
+{id:'profile-api',l:'Profile API',cat:'backend',sz:4,rel:.9,cl:'Go',
  desc:'User profile CRUD. PATCH /my/profile accepts base64 image → GCS upload async. DELETE /my/profile deletes Postgres profile + Ory identity via admin API → triggers RemoveUser Pub/Sub. GET/PATCH /my/preferences stores user prefs. Profile stats, taste calibration (PUT /my/taste-profile), intelligence timeline for gamification. No push token endpoint in tritos branch.',
  code:`<span class="cc">// Profile delete cascade</span>
 <span class="cm">DELETE</span> /my/profile
@@ -592,7 +592,7 @@ PUT  /api/v1/recipes/:id          <span class="cc">// update</span>`,
  conn:['defteros','postgres','pubsub','gcs','ory'],
  guide:`<div class="gs"><div class="gt">Update profile picture</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">PATCH /my/profile with <code>image: "data:image/jpeg;base64,..."</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Backend uploads to GCS async — returns immediately</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Poll /my/profile to confirm avatar_url updated</span></div></div></div>`},
 
-{id:'party-api',l:'Party Mode',cat:'backend',sz:5,rel:.7,
+{id:'party-api',l:'Party Mode',cat:'backend',sz:5,rel:.7,cl:'Go',
  desc:'Backend complete — iOS not yet implemented. Host creates session (6-char invite_code). Guests join via /party/:invite_code/join → receive HS256 guest JWT. WebSocket for real-time queue updates. Shake challenges with scoring. Party badges: shake_champion, party_host, social_shaker, century_shaker. 7 database tables: party_sessions, party_guests, drink_requests, shake_challenges, challenge_scores, party_badges, user_party_stats.',
  code:`<span class="cc">// Party guest flow</span>
 <span class="cm">POST</span> /party/sessions/{invite_code}/join
@@ -607,7 +607,7 @@ PUT  /api/v1/recipes/:id          <span class="cc">// update</span>`,
  conn:['defteros','postgres'],
  guide:`<div class="gs"><div class="gt">Party Mode status</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">Backend fully built — iOS has zero Party Mode screens</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">WebSocket at <code>/party/sessions/:id/ws</code> ready for iOS to consume</span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">Invite code is 6-char alphanumeric, unique per session</span></div></div></div>`},
 
-{id:'social-api',l:'Social & Intelligence',cat:'backend',sz:4,rel:.75,
+{id:'social-api',l:'Social & Intelligence',cat:'backend',sz:4,rel:.75,cl:'Go',
  desc:'Follow/unfollow creators, activity feed, achievements leaderboard. Intelligence system tracks user skill level with timeline. Streaks for scanner usage. Achievements with claim flow. Pour cards for sharing crafted drinks. Home cards endpoint drives iOS home screen personalization. Chat history and feedback via Defteros proxy to Bond service.',
  code:`<span class="cc">// Endpoints not yet wired in iOS</span>
 <span class="cm">GET</span>  /users/{id}/profile   <span class="cc">→ creator profile</span>
@@ -621,7 +621,7 @@ PUT  /api/v1/recipes/:id          <span class="cc">// update</span>`,
  guide:`<div class="gs"><div class="gt">Chat proxy architecture</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">ANY /api/v1/chat → transparent proxy to BOND_BASE_URI</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">iOS can call Defteros /chat OR Bond directly — both work</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">SSL pinning only covers Bond direct URL, not Defteros proxy path</span></div></div></div>`},
 
 // ── Auth & Identity ────────────────────────────────
-{id:'ory',l:'Ory Kratos',cat:'infra',sz:6,rel:1,
+{id:'ory',l:'Ory Kratos',cat:'infra',sz:6,rel:1,cl:'Go / YAML',
  desc:'Identity platform at iam.auth.barsys.com. Handles all OTP (phone), Apple SSO, Google SSO flows. Session tokens (ory_st_*) validated by Defteros via /sessions/whoami — cached in ory_token_cache table (expires_at column) to reduce Ory round-trips. Admin API used for profile deletion. Defteros also issues RS256 JWTs post token-exchange for newer auth flow — JWKS at /.well-known/jwks.json.',
  code:`<span class="cc">// Defteros token validation (Go)</span>
 <span class="ck">func</span> validateOryToken(token string) (*Session, error) {
@@ -640,7 +640,7 @@ PUT  /api/v1/recipes/:id          <span class="cc">// update</span>`,
  guide:`<div class="gs"><div class="gt">Token exchange flow</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">POST /api/v1/auth/token-exchange with Ory session_token</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Defteros issues RS256 JWT (valid JWT_EXPIRY_HOURS, default 24h)</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Use RS256 JWT for subsequent calls — no more Ory round-trips</span></div></div></div>`},
 
 // ── Data Layer ─────────────────────────────────────
-{id:'postgres',l:'PostgreSQL',cat:'data',sz:7,rel:1,
+{id:'postgres',l:'PostgreSQL',cat:'data',sz:7,rel:1,cl:'SQL',
  desc:'Primary database. 111 migrations, 64 tables total. pgvector extension for embeddings (recipe_embeddings VECTOR(768), mixlist_embeddings VECTOR(768), device_docs VECTOR(1536), barsys_scraped_content VECTOR(1536)). HNSW indexes on all vector columns. Full-text search via tsvector on recipes.search_vector (auto-updated by trigger). Key JSONB tables: cocktail_recipes (ingredients, instructions, image, author), analytics_events (properties), devices (configuration). Cloud Run uses POSTGRES_SOCKET for unix socket connection.',
  code:`<span class="cc">-- Key tables (111 migrations, 64 tables)</span>
 cocktail_recipes      <span class="cc">-- JSONB ingredients/instructions</span>
@@ -656,7 +656,7 @@ recipe_embeddings     <span class="cc">-- VECTOR(768) HNSW index</span>`,
  conn:['defteros'],
  guide:`<div class="gs"><div class="gt">Run pgvector similarity search</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Enable extension: <code>CREATE EXTENSION IF NOT EXISTS vector;</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Query: <code>ORDER BY embedding &lt;=&gt; $queryVec LIMIT 5</code></span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">HNSW index on embedding column required for performance</span></div></div></div>`},
 
-{id:'mysql',l:'MySQL Legacy',cat:'data',sz:5,rel:.8,
+{id:'mysql',l:'MySQL Legacy',cat:'data',sz:5,rel:.8,cl:'SQL',
  desc:'Secondary database for backward compatibility. Dual-write: Postgres is primary, MySQL receives async fire-and-forget sync (goroutines). MYSQL_ENABLED env flag (default: false). MySQL sync skipped if user has no phone number (silently logged). Recipe, mixlist, user CRUD all have async MySQL counterparts. The /user/loginv1 endpoint iOS calls is the MySQL legacy token exchange path. Analytics still validates against MySQL tokens for backward compat.',
  code:`<span class="cc">// Async MySQL sync pattern (Go)</span>
 <span class="ck">go func</span>() {
@@ -673,7 +673,7 @@ recipe_embeddings     <span class="cc">-- VECTOR(768) HNSW index</span>`,
  conn:['defteros'],
  guide:`<div class="gs"><div class="gt">MySQL sync failures</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">MySQL sync is fire-and-forget — client never sees sync failures</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Check Defteros logs for <code>mysql sync error</code> entries</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Users without phone numbers silently skip MySQL — divergence risk</span></div></div></div>`},
 
-{id:'sqlite-cache',l:'SQLite Cache',cat:'data',sz:5,rel:1,
+{id:'sqlite-cache',l:'SQLite Cache',cat:'data',sz:5,rel:1,cl:'SQL',
  desc:'iOS local cache via DBManager (mixlist.sqlite). Tables: mixlists, recipes, ingredients (FK→recipes CASCADE), mixlistrecipes, cocktails_recipes (BarBot transient), cocktails_ingredients, customRecipes (not wired), customIngredients (not wired). Never reads from API response directly — all UI reads from SQLite. Sync timestamps stored in UserDefaults: getUpdatedDataTimeStampForCacheRecipeData, getUpdatedDataTimeStampForMixlistData, getUpdatedDataTimeStampForFavourites.',
  code:`<span class="cc">// DBManager — primary iOS data layer</span>
 <span class="ck">class</span> DBManager {
@@ -693,7 +693,7 @@ recipe_embeddings     <span class="cc">-- VECTOR(768) HNSW index</span>`,
  guide:`<div class="gs"><div class="gt">SQLite schema migration</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">No migration framework — schema changes require fresh install or manual ALTER</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Test: delete app → reinstall → verify initial sync</span></div><div class="gstep"><span class="gsn">3</span><span class="gst"><code>customRecipes</code> and <code>customIngredients</code> tables exist but UI not wired</span></div></div></div>`},
 
 // ── Infrastructure ─────────────────────────────────
-{id:'pubsub',l:'GCP Pub/Sub',cat:'infra',sz:5,rel:.9,
+{id:'pubsub',l:'GCP Pub/Sub',cat:'infra',sz:5,rel:.9,cl:'Go / YAML',
  desc:'4 topics. STATION_CONFIG: triggered by any station update → payload {phone, ory_id, device} → downstream consumer pushes to hardware. USER_DATA: new user provisioning → {phone, full_name, email, dob_unix}. REMOVE_USER: account deletion cascade. FULL_RECIPE: flat/AI recipe enrichment pipeline (is_flat=true → consumer enriches → updates back to is_flat=false). All publish calls are async — Defteros does not wait for ACK.',
  code:`<span class="cc">// Topics (env vars)</span>
 GOOGLE_PUBSUB_TOPIC_STATION_CONFIG
@@ -713,7 +713,7 @@ GOOGLE_PUBSUB_TOPIC_FULL_RECIPE
  conn:['defteros','devices-api','recipes-api','profile-api'],
  guide:`<div class="gs"><div class="gt">Debug Pub/Sub message delivery</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">GCP Console → Pub/Sub → Topics → View messages</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Check subscription dead letter queue</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Defteros publishes async — 200 response does NOT mean downstream received it</span></div></div></div>`},
 
-{id:'gcs',l:'GCS Storage',cat:'infra',sz:4,rel:.8,
+{id:'gcs',l:'GCS Storage',cat:'infra',sz:4,rel:.8,cl:'Go / YAML',
  desc:'Google Cloud Storage for media. Bucket: defteros-storage (default). Base64 images from iOS profile/recipe endpoints are decoded and uploaded async to GCS. GOOGLE_APPLICATION_CREDENTIALS_JSON env var contains base64-encoded service account JSON (format: data:application/json;base64,...). Returns GCS public URL stored in image.url field of recipe/profile.',
  code:`<span class="cc">// GCS upload pattern (Go)</span>
 <span class="ck">func</span> uploadBase64Image(b64 string) (string, error) {
@@ -727,7 +727,7 @@ GOOGLE_PUBSUB_TOPIC_FULL_RECIPE
  guide:`<div class="gs"><div class="gt">Configure GCS credentials</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Base64-encode service account JSON</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Set env: <code>GOOGLE_APPLICATION_CREDENTIALS_JSON=data:application/json;base64,&lt;encoded&gt;</code></div><div class="gstep"><span class="gsn">3</span><span class="gst">Verify: <code>GOOGLE_STORAGE_BUCKET_NAME</code> matches bucket in GCP console</span></div></div></div>`},
 
 // ── External Services ──────────────────────────────
-{id:'bond',l:'Bond / BarBot',cat:'ble',sz:6,rel:.95,
+{id:'bond',l:'Bond / BarBot',cat:'ble',sz:6,rel:.95,cl:'Swift',
  desc:'Separate AI service (ci.bond-mvp1.barsys.com + ci.bond.barsys.com). NOT part of Defteros — iOS calls Bond directly. Defteros has /api/v1/chat as a transparent proxy. Bond powers: BarBot chat (POST /api/chat), ingredient image detection (POST /api/image/multipart — different subdomain: bond not bond-mvp1), home card recommendations, shopping list intelligence. SSL pinned in iOS (RELEASE only). Production: blocking POST, no SSE.',
  code:`<span class="cc">// Two Bond subdomains</span>
 ci.bond-mvp1.barsys.com  <span class="cc">→ BarBot chat</span>
@@ -746,7 +746,7 @@ ci.bond.barsys.com       <span class="cc">→ Image scanner</span>
  conn:['ios-app','barbot','scanner','defteros'],
  guide:`<div class="gs"><div class="gt">BarBot production vs SSE branch</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">Production iOS: blocking POST, waits 2-5s for full response</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">SSE only on <code>feature/barbot-sse-migration</code> branch — NOT in prod</span></div><div class="gstep"><span class="gsn">3</span><span class="gst"><code>bar_items</code> field (BLE station context injection) is SSE-only — always nil in prod</span></div></div></div>`},
 
-{id:'ble-hardware',l:'BLE Hardware',cat:'ble',sz:6,rel:1,
+{id:'ble-hardware',l:'BLE Hardware',cat:'ble',sz:6,rel:1,cl:'Swift',
  desc:'Three Barsys hardware devices. All BLE logic is iOS-side only — Defteros has zero BLE code. Nordic UART Service (UUID 6E400001-B5A3-F393-E0A9-E50E24DCCA9E). Write char: 6E400002 (app→device, .withResponse). Notify char: 6E400003 (device→app). Commands are UTF-8 comma-separated strings. Commands queued serially via BLECommandChannel actor. Automatic reconnect with exponential backoff. 15s scan timeout, 10s connection timeout.',
  code:`<span class="cc">// Nordic UART UUIDs</span>
 Service:  <span class="cs">6E400001-B5A3-F393-E0A9-E50E24DCCA9E</span>
@@ -768,7 +768,7 @@ barsys_s                             → Shaker Pro
 
 // ── iOS — Missing Features ──────────────────────────────────────
 
-,{id:'station-cleaning',l:'Station Cleaning',cat:'ios',sz:5,rel:.9,
+,{id:'station-cleaning',l:'Station Cleaning',cat:'ios',sz:5,rel:.9,cl:'Swift',
  desc:'Full cleaning/flush workflow for Barsys 360 stations. Handles perishable ingredient cleanup, tubing flush sequences. StationCleaningFlowViewController + StationCleaningFlowModel. Triggered from ControlCenterViewController when user switches a perishable ingredient. Sends opcode 227 (clean/pause) via BLE — requires trailing comma: "227,1,".',
  code:`<span class="cc">// Opcode 227 — clean/pause</span>
 BLECommandChannel.send(<span class="cs">"227,1,"</span>)  <span class="cc">// trailing comma required!</span>
@@ -782,7 +782,7 @@ ControlCenterVC
  conn:['ios-app','my-bar','crafting','ble-hardware'],
  guide:`<div class="gs"><div class="gt">Trigger station clean</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">User replaces perishable in ControlCenterVC</span></div><div class="gstep hl"><span class="gsn">2</span><span class="gst">Launch <code>StationCleaningFlowViewController</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Opcode 227 requires trailing comma — <code>"227,1,"</code> not <code>"227,1"</code></span></div></div></div>`},
 
-{id:'barbot-history',l:'BarBot History',cat:'ios',sz:5,rel:.85,
+{id:'barbot-history',l:'BarBot History',cat:'ios',sz:5,rel:.85,cl:'Swift',
  desc:'BarBot AI chat session history screen. BarBotHistoryViewController displays list of past sessions. BarBotApiService.getSessionList() fetches sessions per user. BarBotApiService.getSessionMessages(sessionId:) loads individual session transcript. Models: BarBotSessionSummary, BarBotMessageItem. Accessible from BarBot tab.',
  code:`<span class="cc">// API calls</span>
 <span class="cm">GET</span> /api/v1/sessions?user_id={\(userId)}
@@ -793,7 +793,7 @@ ControlCenterVC
  conn:['barbot','chat-api','ios-app'],
  guide:`<div class="gs"><div class="gt">Open a past session</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Tap history icon in BarBot tab</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Select session from <code>BarBotHistoryViewController</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Messages reload via <code>getSessionMessages(sessionId:)</code></span></div></div></div>`},
 
-{id:'profile-mgmt',l:'Profile Management',cat:'ios',sz:5,rel:.85,
+{id:'profile-mgmt',l:'Profile Management',cat:'ios',sz:5,rel:.85,cl:'Swift',
  desc:'Full account lifecycle: view, edit, and delete user profile. MyProfileViewController handles display. EditViewController covers profile field updates (name, DOB, email). MyProfileApiService includes delete endpoint — wipes Keychain and returns to Login on success. Profile data cached in Keychain: user_phone, user_email, name, user_dob, userId.',
  code:`<span class="cc">// Keychain keys for user profile</span>
 <span class="cs">"user_phone"</span>   → phone (auth key)
@@ -807,7 +807,7 @@ ControlCenterVC
  conn:['ios-app','profile-api','auth-flow'],
  guide:`<div class="gs"><div class="gt">Delete user account</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">Irreversible — clears all Keychain data</span></div><div class="gstep"><span class="gsn">1</span><span class="gst">Call <code>MyProfileApiService.deleteAccount()</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">On success: clear Keychain → <code>triggerSessionExpirationLogout()</code></span></div></div></div>`},
 
-{id:'settings-ui',l:'Settings & Preferences',cat:'ios',sz:4,rel:.8,
+{id:'settings-ui',l:'Settings & Preferences',cat:'ios',sz:4,rel:.8,cl:'Swift',
  desc:'App settings screens. UnitPreferencesViewController + UnitPreferencesViewModel: toggle between mL and oz measurement units. UI adapts to connected device (Barsys 360 vs Coaster shows different available units). SideMenuViewController: side drawer navigation. WebViewController: in-app WebView for FAQ, Terms, Privacy, Contact, About (all load barsys.com URLs).',
  code:`<span class="cc">// External URLs loaded in WebViewController</span>
 FAQ:     <span class="cs">https://barsys.com/faqs</span>
@@ -818,7 +818,7 @@ About:   <span class="cs">https://barsys.com/our-story</span>`,
  conn:['ios-app','my-bar'],
  guide:`<div class="gs"><div class="gt">Change units</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Open <code>UnitPreferencesViewController</code> from settings</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Toggle mL ↔ oz — saved to UserDefaults</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">CraftingVC reads preference before pour commands</span></div></div></div>`},
 
-{id:'onboarding',l:'Onboarding Flow',cat:'ios',sz:4,rel:.8,
+{id:'onboarding',l:'Onboarding Flow',cat:'ios',sz:4,rel:.8,cl:'Swift',
  desc:'New user onboarding sequence. SplashViewController → LoginViewController (phone entry) → OTP verify → SignUpViewController (name, DOB, email) → CountryPickerViewController → TutorialViewController → TabBar. SuccessViewController shown after device pairing. SelectQuantityViewController: quantity picker for ingredient amounts. All screens part of the pre-auth coordinator flow.',
  code:`<span class="cc">// Onboarding coordinator flow</span>
 SplashVC
@@ -834,7 +834,7 @@ DevicePairedVC → SuccessVC`,
  conn:['ios-app','auth-flow','device-pairing-ui'],
  guide:`<div class="gs"><div class="gt">Skip tutorial in dev builds</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Set <code>UserDefaults.hasTutorial = true</code> in debug scheme</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">AppCoordinator will bypass TutorialVC</span></div></div></div>`},
 
-{id:'device-pairing-ui',l:'Device Pairing UI',cat:'ios',sz:5,rel:.9,
+{id:'device-pairing-ui',l:'Device Pairing UI',cat:'ios',sz:5,rel:.9,cl:'Swift',
  desc:'BLE device discovery and pairing flow. DeviceListViewController: scans and lists nearby Barsys devices (filtered by prefix barsys_360, barsys_c, barsys_s). PairYourDeviceViewController: guides user through pairing steps. DeviceConnectedController / DevicePairedViewController: post-pairing success screen. DeviceDetectedPopUpVc: auto-pop when device detected nearby. All feeds into Bond BLE library.',
  code:`<span class="cc">// Device name prefix filtering</span>
 barsys_360 / barsys360 → Barsys 360
@@ -851,7 +851,7 @@ DeviceListVC (BLE scan)
  conn:['ios-app','bond','ble-hardware','devices-api'],
  guide:`<div class="gs"><div class="gt">Handle device not found</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">15s scan timeout in Bond — show retry UI</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Check device prefix — reject unknown BLE names</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">iOS 15+ requires NSBluetoothAlwaysUsageDescription in Info.plist</span></div></div></div>`},
 
-{id:'favorites-drinks',l:'Favourites & My Drinks',cat:'ios',sz:4,rel:.8,
+{id:'favorites-drinks',l:'Favourites & My Drinks',cat:'ios',sz:4,rel:.8,cl:'Swift',
  desc:'Two sub-tabs under FavouritesRecipesAndDrinksViewController. Favourites: user-starred recipes, stored in SQLite via DBManager. My Drinks: recipes crafted by the user (DrinkCompleteVC logs them post-pour). Both are SQLite-read-first. Synced to Defteros on app foreground via delta sync. ReadyToPourListViewController: filtered list showing only craftable recipes from favourites based on current MyBar state.',
  code:`<span class="cc">// SQLite tables used</span>
 favourites    → user starred recipes
@@ -867,7 +867,7 @@ my_drinks     → crafted drink log
 
 // ── Backend — Missing APIs ──────────────────────────────────────
 
-{id:'ingredients-catalog',l:'Ingredients Catalog',cat:'backend',sz:6,rel:1,
+{id:'ingredients-catalog',l:'Ingredients Catalog',cat:'backend',sz:6,rel:1,cl:'Go',
  desc:'V4.1 ingredient architecture — replaces flat ingredient lists. Two-tier: Categories → Products. GET /api/v1/ingredients/categories (public), GET /ingredients/categories/:id/products (public), GET /ingredients/products/search (public). Products are the unit of truth for MyBar, scanner, recipe ingredients. Migrations: categories table, products table, recipe_ingredients join table.',
  code:`<span class="cm">GET</span> /api/v1/ingredients/categories
 <span class="cm">GET</span> /api/v1/ingredients/categories/<span class="cn">:id</span>/products
@@ -880,7 +880,7 @@ Product  { id, category_id, name, brand,
  conn:['defteros','mybar-api','scanner-api','recipe-catalog-api'],
  guide:`<div class="gs"><div class="gt">Wire new ingredient type end-to-end</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">INSERT into <code>categories</code> table with type + parent_category_id</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Add products under that category — scanner matches via category lookup</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Delta sync pushes updated catalog to iOS SQLite on next app open</span></div></div></div>`},
 
-{id:'home-cards-api',l:'Home Cards API',cat:'backend',sz:4,rel:.8,
+{id:'home-cards-api',l:'Home Cards API',cat:'backend',sz:4,rel:.8,cl:'Go',
  desc:'GET /api/v1/home-cards — proxies to Barbot ML service for personalized home page feed cards. Cards are assembled by Barbot based on user taste profile, recent activity, trending recipes. Handler: home_cards_handler.go, backed by BarbotHTTPRepository.',
  code:`<span class="cm">GET</span> /api/v1/home-cards
 
@@ -891,7 +891,7 @@ HomeCard { type, recipe_id, title,
  conn:['defteros','barbot-ml','barbot'],
  guide:`<div class="gs"><div class="gt">Debug empty home feed</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Check <code>BARBOT_BASE_URI</code> env var is set</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Barbot service may be down — fallback returns trending</span></div></div></div>`},
 
-{id:'recipe-catalog-api',l:'Recipe Catalog API',cat:'backend',sz:6,rel:1,
+{id:'recipe-catalog-api',l:'Recipe Catalog API',cat:'backend',sz:6,rel:1,cl:'Go',
  desc:'Full recipe catalog (JWT auth). Separate from cocktail cache. GET /api/v1/recipes (list), /recipes/search, /recipes/:id, /recipes/trending, /recipes/categories, /recipes/recommended, /recipes/:id/ratings, /recipes/:id/similar. RecipeService handles vector-based similarity search using recipe_embeddings. Powers the Explore tab discovery.',
  code:`<span class="cm">GET</span> /api/v1/recipes?page=&limit=
 <span class="cm">GET</span> /api/v1/recipes/trending
@@ -902,7 +902,7 @@ HomeCard { type, recipe_id, title,
  conn:['defteros','ingredients-catalog','vector-embeddings','recipes-api','taste-calibration-api'],
  guide:`<div class="gs"><div class="gt">Add recipe recommendation logic</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Update recipe_embeddings via ML pipeline</span></div><div class="gstep"><span class="gsn">2</span><span class="gst"><code>/recipes/recommended</code> uses taste profile + embeddings</span></div></div></div>`},
 
-{id:'crafting-session-api',l:'Crafting Session API',cat:'backend',sz:5,rel:.9,
+{id:'crafting-session-api',l:'Crafting Session API',cat:'backend',sz:5,rel:.9,cl:'Go',
  desc:'Server-side crafting session tracking for Ark machine. POST /my/crafting/start (JWT), GET /my/crafting/:id/status, POST /my/crafting/:id/complete. CraftingSessionService persists pour events and machine state to crafting_sessions table. Tied to station telemetry events. Enables My Drinks history and intelligence scoring.',
  code:`<span class="cm">POST</span> /api/v1/my/crafting/start
 <span class="cm">GET</span>  /api/v1/my/crafting/<span class="cn">:id</span>/status
@@ -916,7 +916,7 @@ CraftingSession {
  conn:['defteros','station-telemetry','crafting','mybar-api'],
  guide:`<div class="gs"><div class="gt">Debug stalled crafting session</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Check status via GET /my/crafting/:id/status</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">If BLE disconnected mid-pour, session stays open</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">POST /complete must be called even on cancel to close session</span></div></div></div>`},
 
-{id:'station-telemetry',l:'Station Telemetry',cat:'backend',sz:5,rel:.85,
+{id:'station-telemetry',l:'Station Telemetry',cat:'backend',sz:5,rel:.85,cl:'Go',
  desc:'POST /api/v1/my/station/events — receives real-time telemetry from Barsys Ark machine: pour start/complete, volume dispensed, error codes, station slot states. StationEventService writes to station_events table. Events fan out to GCP Pub/Sub for analytics pipeline. Enables pour accuracy tracking and maintenance alerts.',
  code:`<span class="cm">POST</span> /api/v1/my/station/events
 
@@ -932,7 +932,7 @@ StationEvent {
  conn:['defteros','crafting-session-api','pubsub','devices-api'],
  guide:`<div class="gs"><div class="gt">Handle pour error event</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Event type <code>"pour_error"</code> with error_code fires PubSub alert</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">iOS receives SSE update with error state</span></div></div></div>`},
 
-{id:'scanner-api',l:'Scanner API',cat:'backend',sz:7,rel:1,
+{id:'scanner-api',l:'Scanner API',cat:'backend',sz:7,rel:1,cl:'Go',
  desc:'Full bottle/ingredient scanner system. Endpoints: POST /scanner/sessions (create session), GET /scanner/sessions/:id, POST /scanner/sessions/:id/scan (submit barcode), POST /scanner/sessions/:id/review, POST /scanner/sessions/:id/recommendations, POST /scanner/sessions/:id/claim (merge to MyBar). POST /my/bar/scan-merge (bulk merge). POST /scanner/brand-impressions. GET /my/shopping-list, GET /my/discovery. ScannerService proxies barcode detection to Barbot ML.',
  code:`<span class="cm">POST</span> /api/v1/scanner/sessions
 <span class="cm">POST</span> /api/v1/scanner/sessions/<span class="cn">:id</span>/scan
@@ -944,7 +944,7 @@ StationEvent {
  conn:['defteros','barbot-ml','ingredients-catalog','social-scan-api','shopping-list','mybar-api'],
  guide:`<div class="gs"><div class="gt">Full scan-to-bar flow</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">POST /scanner/sessions → sessionId</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">POST /sessions/:id/scan for each barcode</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">POST /sessions/:id/claim → merges detections into MyBar</span></div></div></div>`},
 
-{id:'social-scan-api',l:'Social Scan API',cat:'backend',sz:4,rel:.8,
+{id:'social-scan-api',l:'Social Scan API',cat:'backend',sz:4,rel:.8,cl:'Go',
  desc:'Group ingredient scanning sessions. POST /scanner/social-sessions (create, JWT), POST /social-sessions/:code/join (join by code, JWT), GET /social-sessions/:id, GET /social-sessions/:id/results. SocialScanService coordinates multi-user scanning — results merged into a shared detected list. DB tables: social_scan_sessions, social_scan_participants.',
  code:`<span class="cm">POST</span> /api/v1/scanner/social-sessions
 <span class="cc">→ { session_id, join_code }</span>
@@ -954,7 +954,7 @@ StationEvent {
  conn:['defteros','scanner-api','party-api'],
  guide:`<div class="gs"><div class="gt">Start a group scan</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Host calls POST /social-sessions → gets join_code</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Guests call POST /social-sessions/:code/join</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">All scan independently — results merged on GET /results</span></div></div></div>`},
 
-{id:'taste-calibration-api',l:'Taste Calibration API',cat:'backend',sz:5,rel:.85,
+{id:'taste-calibration-api',l:'Taste Calibration API',cat:'backend',sz:5,rel:.85,cl:'Go',
  desc:'User taste profile calibration. GET /api/v1/my/taste-profile (JWT), PUT /my/taste-profile. Stores flavour preferences: sweet, sour, bitter, strong, fruity, herbal — each 0–10. TasteCalibrationService reads/writes taste_calibration table. Profile feeds into recipe recommendations and intelligence scoring.',
  code:`<span class="cm">GET</span> /api/v1/my/taste-profile
 <span class="cm">PUT</span> /api/v1/my/taste-profile
@@ -967,7 +967,7 @@ TasteProfile {
  conn:['defteros','profile-api','intelligence-api','recipe-catalog-api'],
  guide:`<div class="gs"><div class="gt">Update taste profile</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">PUT /my/taste-profile with preference values</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Recipe recommendations refresh on next /recipes/recommended call</span></div></div></div>`},
 
-{id:'pour-cards-api',l:'Pour Cards API',cat:'backend',sz:4,rel:.75,
+{id:'pour-cards-api',l:'Pour Cards API',cat:'backend',sz:4,rel:.75,cl:'Go',
  desc:'User-created video drink recipe cards. POST /my/pour-cards (JWT, creates card), GET /my/pour-cards (list), PATCH /my/pour-cards/:id (update), GET /pour-cards/:id (PUBLIC — no auth). Videos stored in GCS. PourCardService manages upload lifecycle. Shareable via public URL.',
  code:`<span class="cm">POST</span>  /api/v1/my/pour-cards         <span class="cc">// JWT</span>
 <span class="cm">GET</span>   /api/v1/my/pour-cards         <span class="cc">// JWT</span>
@@ -979,7 +979,7 @@ PourCard { id, user_id, recipe_id,
  conn:['defteros','gcs','crafting','crafting-session-api'],
  guide:`<div class="gs"><div class="gt">Create pour card</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Upload video to GCS → get video_url</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">POST /my/pour-cards with recipe_id + video_url</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Public URL: /pour-cards/:id (no auth needed)</span></div></div></div>`},
 
-{id:'intelligence-api',l:'Intelligence API',cat:'backend',sz:5,rel:.85,
+{id:'intelligence-api',l:'Intelligence API',cat:'backend',sz:5,rel:.85,cl:'Go',
  desc:'User insights and stats dashboard. GET /api/v1/my/intelligence (JWT): summary of scans, pours, streaks, top ingredients, flavour breakdown. GET /my/intelligence/timeline: chronological activity. IntelligenceService aggregates across scanner, crafting, analytics tables. Feeds the "INTELLIGENCE" score in social/party leaderboard.',
  code:`<span class="cm">GET</span> /api/v1/my/intelligence
 <span class="cm">GET</span> /api/v1/my/intelligence/timeline
@@ -993,7 +993,7 @@ Intelligence {
  conn:['defteros','analytics-api','streaks-api','taste-calibration-api','social-api'],
  guide:`<div class="gs"><div class="gt">Intelligence score calculation</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Score = weighted sum of scan_count, pour_count, streak, diversity</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Updated asynchronously via PubSub event on each pour/scan</span></div></div></div>`},
 
-{id:'streaks-api',l:'Streaks API',cat:'backend',sz:4,rel:.8,
+{id:'streaks-api',l:'Streaks API',cat:'backend',sz:4,rel:.8,cl:'Go',
  desc:'Daily scanning streak tracking. GET /api/v1/my/streaks (JWT): current streak, longest streak, last scan date. ScanStreakService increments streak on each scanner session claim. Streak resets after 24h inactivity. streak data in scan_streaks table. Feeds intelligence score and gamification badges.',
  code:`<span class="cm">GET</span> /api/v1/my/streaks
 
@@ -1006,7 +1006,7 @@ ScanStreak {
  conn:['defteros','scanner-api','intelligence-api'],
  guide:`<div class="gs"><div class="gt">Streak reset logic</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Streak increments only on /scanner/sessions/:id/claim</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Resets if last_scan_date > 24h ago</span></div></div></div>`},
 
-{id:'chat-api',l:'Chat API',cat:'backend',sz:6,rel:1,
+{id:'chat-api',l:'Chat API',cat:'backend',sz:6,rel:1,cl:'Go',
  desc:'Bond AI proxy — HTTP forwarding (not SSE). Routes: ANY /api/v1/chat and ANY /api/v1/chat/* proxied to Bond service /api/chat endpoint. Handler uses c.Blob(resp.StatusCode, ...) to forward raw response bytes. Extensions: GET /chat/history (conversation log), POST /chat/feedback (Bond feedback). Chat history persisted in chat_history + chat_history_summary tables. Base URL from BOND_SERVICE_URL env var.',
  code:`<span class="cc">// chat_handler.go — HTTP proxy (NOT SSE)</span>
 ANY /api/v1/chat      <span class="cc">// → Bond /api/chat</span>
@@ -1023,7 +1023,7 @@ POST /chat/feedback   <span class="cc">// Bond feedback</span>
  conn:['defteros','bond-ai','barbot','barbot-history'],
  guide:`<div class="gs"><div class="gt">Debug SSE disconnects</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Bond proxy must forward <code>Transfer-Encoding: chunked</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">iOS URLSession requires <code>responseType = .stream</code> for SSE</span></div></div></div>`},
 
-{id:'push-notifications-api',l:'Push Notifications API',cat:'backend',sz:4,rel:.8,
+{id:'push-notifications-api',l:'Push Notifications API',cat:'backend',sz:4,rel:.8,cl:'Go',
  desc:'Push token management for APNs (iOS). PUT /api/v1/my/push-token (JWT): register device push token. DELETE /api/v1/my/push-token: deregister. NotificationsService stores tokens in push_tokens table keyed by user_id + device_id. Used by party mode and crafting completion notifications. Firebase Admin SDK on backend for APNs delivery.',
  code:`<span class="cm">PUT</span>    /api/v1/my/push-token
 <span class="cm">DELETE</span> /api/v1/my/push-token
@@ -1036,7 +1036,7 @@ PushToken {
  conn:['defteros','profile-api','party-api'],
  guide:`<div class="gs"><div class="gt">Register push token on launch</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Request permission via <code>UNUserNotificationCenter</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">On token received from APNs: PUT /my/push-token</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Deregister on logout: DELETE /my/push-token</span></div></div></div>`},
 
-{id:'brand-attribution-api',l:'Brand Attribution API',cat:'backend',sz:4,rel:.75,
+{id:'brand-attribution-api',l:'Brand Attribution API',cat:'backend',sz:4,rel:.75,cl:'Go',
  desc:'Brand impression tracking during ingredient scanning. POST /api/v1/scanner/brand-impressions (public): records when a brand label is detected during a scan session. GET /admin/brand-reports/:brand (JWT/admin): brand analytics report. BrandService writes to brand_impressions table. Enables brand partnership analytics — which brands get detected most often.',
  code:`<span class="cm">POST</span> /api/v1/scanner/brand-impressions  <span class="cc">// public</span>
 <span class="cm">GET</span>  /api/v1/admin/brand-reports/<span class="cn">:brand</span> <span class="cc">// admin</span>
@@ -1051,7 +1051,7 @@ BrandImpression {
 
 // ── Infrastructure — Missing Services ──────────────────────────
 
-{id:'barbot-ml',l:'Barbot ML Service',cat:'infra',sz:6,rel:1,
+{id:'barbot-ml',l:'Barbot ML Service',cat:'infra',sz:6,rel:1,cl:'Go / YAML',
  desc:'Machine learning microservice for ingredient/bottle detection. Defteros config: BARBOT_BASE_URI (default localhost:8000 dev; production at ci.bond.barsys.com). Accessed via BarbotHTTPRepository. Handles: barcode detection from camera frames, ingredient identification from labels, recipe recommendation from detected inventory, home card generation. Distinct from Bond AI (BOND_BASE_URI=ci.bond-mvp1.barsys.com) — barbot-ml is the vision/scanner service; Bond is conversational AI. Used by Scanner API, Home Cards, Social Scan.',
  code:`<span class="cc">// Config</span>
 BARBOT_BASE_URI=http://barbot-service:8000
@@ -1064,7 +1064,7 @@ BARBOT_BASE_URI=http://barbot-service:8000
  conn:['scanner-api','home-cards-api','social-scan-api'],
  guide:`<div class="gs"><div class="gt">Test detection locally</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Set <code>BARBOT_BASE_URI=http://localhost:8000</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">POST /detect with base64 image payload</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Returns { detections: [{barcode, product_id, confidence}] }</span></div></div></div>`},
 
-{id:'bond-ai',l:'Bond AI Service',cat:'infra',sz:6,rel:1,
+{id:'bond-ai',l:'Bond AI Service',cat:'infra',sz:6,rel:1,cl:'Go / YAML',
  desc:'Conversational AI service for BarBot chat and recipe recommendations. Defteros config: BOND_BASE_URI (default https://ci.bond.barsys.com — no -mvp1 suffix). BondHTTPRepository proxies to Bond. iOS BarBot uses BarBotSSEClient.swift (URLSession.bytes SSE) connecting to ci.bond-cof.barsys.com/api/; action cards use ci.bond.barsys.com/api/. Defteros proxies ANY /chat/* to Bond. Chat history/feedback extension routes planned but not yet wired in tritos.',
  code:`<span class="cc">// Config</span>
 BOND_BASE_URI=https://ci.bond.barsys.com
@@ -1080,7 +1080,7 @@ data: {"done": true, "recipe_id": "..."}`,
  conn:['chat-api','barbot','defteros'],
  guide:`<div class="gs"><div class="gt">Update Bond endpoint</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">iOS pins the TLS cert for Bond — URL change requires app update</span></div><div class="gstep"><span class="gsn">1</span><span class="gst">Update <code>BOND_BASE_URI</code> in Defteros env</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Update iOS SSL pin + app release for direct iOS→Bond connection</span></div></div></div>`},
 
-{id:'websocket-hub',l:'WebSocket Hub',cat:'infra',sz:4,rel:.8,
+{id:'websocket-hub',l:'WebSocket Hub',cat:'infra',sz:4,rel:.8,cl:'Go / YAML',
  desc:'Gorilla WebSocket hub for Party Mode real-time events. GET /api/v1/party/sessions/:id/ws (PartyOrGuest auth): upgrades HTTP to WebSocket. PartyHub broadcasts events to all session participants: drink_request, challenge_start, score_update, session_end. Enables live leaderboard updates and shake challenges without polling.',
  code:`<span class="cm">GET</span> /api/v1/party/sessions/<span class="cn">:id</span>/ws
 <span class="cc">→ Upgrade: WebSocket</span>
@@ -1093,7 +1093,7 @@ data: {"done": true, "recipe_id": "..."}`,
  conn:['party-api','defteros'],
  guide:`<div class="gs"><div class="gt">Connect party WebSocket</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Get party JWT (host or guest token)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Connect: wss://api-ng.barsys.com/api/v1/party/sessions/:id/ws</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">iOS uses URLSessionWebSocketTask — no third-party lib</span></div></div></div>`},
 
-{id:'observability',l:'Observability',cat:'infra',sz:4,rel:.7,
+{id:'observability',l:'Observability',cat:'infra',sz:4,rel:.7,cl:'Go / YAML',
  desc:'Prometheus metrics + structured logging for Defteros. HTTP metrics: request count, latency histogram, in-flight requests — all labelled by route + status. Metrics endpoint: GET /metrics (Prometheus scrape). Structured logging via Go slog with context injection middleware — includes request_id, user_id, route on every log line. Files: /internal/observability/http_metrics.go, logger.go, slog_middleware.go.',
  code:`<span class="cm">GET</span> /metrics   <span class="cc">→ Prometheus scrape</span>
 
@@ -1109,7 +1109,7 @@ request_id, user_id, route, latency_ms`,
 
 // ── Data — Missing Models ──────────────────────────────────────
 
-{id:'vector-embeddings',l:'Vector Embeddings',cat:'data',sz:5,rel:.85,
+{id:'vector-embeddings',l:'Vector Embeddings',cat:'data',sz:5,rel:.85,cl:'SQL',
  desc:'Semantic vector embeddings for recipe and mixlist similarity search. Tables: recipe_embeddings (recipe_id, embedding vector), mixlist_embeddings. Generated by ML pipeline from recipe descriptions/ingredients. Used by RecipeService for /recipes/similar and /recipes/recommended endpoints. Stored in PostgreSQL using pgvector extension.',
  code:`<span class="cc">-- recipe_embeddings table</span>
 recipe_id  UUID FK → recipes
@@ -1124,7 +1124,7 @@ ORDER BY embedding <=> $1 LIMIT 10`,
  conn:['postgres','recipe-catalog-api','mixlists-api'],
  guide:`<div class="gs"><div class="gt">Regenerate embeddings</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Run ML pipeline script against recipes table</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Upsert into recipe_embeddings via COPY</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Verify: GET /recipes/:id/similar returns non-empty</span></div></div></div>`},
 
-{id:'shopping-list',l:'Shopping List',cat:'data',sz:4,rel:.75,
+{id:'shopping-list',l:'Shopping List',cat:'data',sz:4,rel:.75,cl:'SQL',
  desc:'Gap analysis between user MyBar and recipe requirements. GET /api/v1/my/shopping-list (JWT): computes missing ingredients across all favourited recipes — returns ranked list of what to buy to unlock most recipes. GET /api/v1/my/discovery: products the user has never scanned that appear in trending recipes. Both are computed from MyBar + recipe_ingredients join.',
  code:`<span class="cm">GET</span> /api/v1/my/shopping-list
 <span class="cm">GET</span> /api/v1/my/discovery
@@ -1141,7 +1141,7 @@ ShoppingItem {
 
 // ── Granular: iOS Stations ──────────────────────────────────────
 
-,{id:'stations-menu-vc',l:'StationsMenuVC',cat:'ios',sz:6,rel:1,
+,{id:'stations-menu-vc',l:'StationsMenuVC',cat:'ios',sz:6,rel:1,cl:'Swift',
  desc:'StationsMenuViewController manages the station slot configuration UI. Calls StationsServiceApi to fetch current slot assignments from the backend. Displays up to 6 station slots; tapping a slot opens ingredient assignment. Triggers BleManager.writeCommand() for clean operations. No separate ViewModel — logic handled directly in the ViewController. Part of ControlCenterViewController child flow.',
  code:`<span class="cc">// StationsMenuViewController.swift</span>
 <span class="ck">class</span> StationsMenuViewController: UIViewController {
@@ -1159,7 +1159,7 @@ ShoppingItem {
  conn:['my-bar','station-cleaning','ble-hardware','mybar-api','crafting'],
  guide:`<div class="gs"><div class="gt">Assign ingredient to station</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Tap station button A–F</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Camera → StationsServiceApi.updateStation() with ConfigurationStationBody</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Perishable: must include updatedAt — triggers 48h expiry clock</span></div></div></div>`},
 
-{id:'stations-service-api',l:'StationsServiceApi',cat:'ios',sz:5,rel:1,
+{id:'stations-service-api',l:'StationsServiceApi',cat:'ios',sz:5,rel:1,cl:'Swift',
  desc:'iOS API layer for station CRUD. Four methods: getStationsFromServer(deviceName) → GET /devices/{deviceName} (404 triggers initial setup). updateStation(isupdatedDateNeeded,stationName,config) → PUT /devices/{deviceName}/stations/{stationName}, sets global isStationUpdated=true. save360InitialDeviceStationsOnlyFirstTime() → POST /devices with all 6 slots null (first launch only). updateAllStationsTogetherWithPatch(configDict) → PATCH /devices/{deviceName}, bulk update all 6.',
  code:`<span class="cc">// 1. Get stations</span>
 <span class="cm">GET</span> {baseUrlForRecipes}/devices/{deviceName}
@@ -1179,7 +1179,7 @@ body: { stations: { a: {...}, b: {...}, ... } }`,
  conn:['my-bar','stations-menu-vc','mybar-api','devices-api'],
  guide:`<div class="gs"><div class="gt">Station 404 on first launch</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">getStationsFromServer returns 404</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Auto-calls save360InitialDeviceStationsOnlyFirstTime()</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Creates device with 6 null station slots</span></div></div></div>`},
 
-{id:'ble-opcodes',l:'BLE Opcodes',cat:'ble',sz:6,rel:1,
+{id:'ble-opcodes',l:'BLE Opcodes',cat:'ble',sz:6,rel:1,cl:'Swift',
  desc:'BLE command strings sent over Nordic UART Write characteristic as UTF-8. Pour: "200,1,{qty},2,{qty},..." (1-based slot numbers, comma-separated pairs). Cancel: "202". Clean slot n: "227,{n}," (trailing comma required). Stop cleaning: "227,222,". Commands built inline — no separate BleCommandBuilder class. Feedback from device is 0-based: 218,n,405=dispensing; 217,402=place glass; 221,405=remove glass (triggers DrinkComplete screen).',
  code:`<span class="cc">// Constants.swift + BleManagerDelegate.swift</span>
 <span class="cc">// SEND (1-based station numbers)</span>
@@ -1195,7 +1195,7 @@ body: { stations: { a: {...}, b: {...}, ... } }`,
  conn:['ble-hardware','bond','crafting','station-cleaning'],
  guide:`<div class="gs"><div class="gt">Station number indexing gotcha</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">Commands use 1-based station numbers (1–6)</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Feedback opcodes 218 and 231 return 0-based station numbers</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">BLECommandChannel actor queues commands serially — never send two at once</span></div></div></div>`},
 
-{id:'ready-to-pour',l:'Ready to Pour',cat:'ios',sz:6,rel:1,
+{id:'ready-to-pour',l:'Ready to Pour',cat:'ios',sz:6,rel:1,cl:'Swift',
  desc:'ReadyToPourListViewController: shows only recipes craftable with current station state. SQL HAVING clause ensures all non-garnish ingredient category pairs exist in stations. getMixlistsUpdateClass().getBarsys360ReadyToPourRecipes() builds allowed category pair set from arrStations, passes to DBManager.fetchMatchingRecipeLists(). No server call needed — entirely local SQLite. RecipeCraftingClass().craftRecipeFromRecipeListing() initiates pour from this list.',
  code:`<span class="cc">-- fetchMatchingRecipeLists SQL</span>
 <span class="ck">SELECT</span> r.*
@@ -1215,7 +1215,7 @@ body: { stations: { a: {...}, b: {...}, ... } }`,
  conn:['recipe-browse','my-bar','sqlite-cache','crafting','stations-menu-vc'],
  guide:`<div class="gs"><div class="gt">Why a recipe doesn't appear in Ready to Pour</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Check station categories vs recipe ingredient categoryPrimary+Secondary pairs</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Garnish/additional categories are excluded from check</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Matching is exact case-insensitive — "Base|Spirit" ≠ "base|spirits"</span></div></div></div>`},
 
-{id:'recipe-model-ios',l:'Recipe Model (iOS)',cat:'ios',sz:6,rel:1,
+{id:'recipe-model-ios',l:'Recipe Model (iOS)',cat:'ios',sz:6,rel:1,cl:'Swift',
  desc:'Recipe data model: struct Recipe: Codable defined in MixlistModel.swift. Key fields: id, name, description, image, ice, ingredients ([RecipeIngredient]), instructions, glassware, tags, variations, barsys360Compatible, isFavourite. RecipeIngredient has a Category sub-struct with primary, secondary, and flavourTags fields — these are used for station matching in isBarsys360RecipeCraftable(). No separate RecipeFilter class — filtering done inline in VCs.',
  code:`<span class="cc">// MixlistModel.swift</span>
 <span class="ck">struct</span> Recipe: Codable {
@@ -1238,7 +1238,7 @@ body: { stations: { a: {...}, b: {...}, ... } }`,
 
 // ── Granular: Backend ──────────────────────────────────────────
 
-{id:'categories-api',l:'Categories API',cat:'backend',sz:6,rel:1,
+{id:'categories-api',l:'Categories API',cat:'backend',sz:6,rel:1,cl:'Go',
  desc:'V4.1 ingredient categories. GET /api/v1/ingredients/categories (public) — 65 seeded categories. GET /ingredients/categories/:id/products (public). Self-referential hierarchy via parent_category_id. Types: spirit|mixer|garnish|other. Sub-categories: Bourbon→Whiskey, Scotch→Whiskey, Blanco→Tequila, White Rum→Rum, etc. Schema: id UUID, name VARCHAR(100), type CHECK(spirit|mixer|garnish|other), parent_category_id UUID FK self, icon VARCHAR(10), is_garnish BOOL, slug VARCHAR(100) UNIQUE. Indexes: GIN on slug, type, parent.',
  code:`<span class="cm">GET</span> /api/v1/ingredients/categories
 <span class="cc">→ public, 65 categories</span>
@@ -1260,7 +1260,7 @@ Rum     → White, Dark, Spiced, Aged`,
  conn:['defteros','ingredients-catalog','products-api','recipe-catalog-api'],
  guide:`<div class="gs"><div class="gt">Add subcategory</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">INSERT with parent_category_id = parent UUID</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Spirit filter in /recipes uses parent hierarchy via JOIN</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">iOS availability check uses category name match — subcategories must match exactly</span></div></div></div>`},
 
-{id:'products-api',l:'Products API',cat:'backend',sz:6,rel:1,
+{id:'products-api',l:'Products API',cat:'backend',sz:6,rel:1,cl:'Go',
  desc:'V4.1 product catalog. GET /ingredients/categories/:id/products, GET /ingredients/products/search?q=. 250+ seeded is_common products. Schema: id UUID, name VARCHAR(200), category_id UUID FK categories, brand VARCHAR(200), image_url TEXT, volume_ml INT, is_common BOOL, created_at, updated_at. ProductWithCategory enriched response includes full category object. Seeded products: Grey Goose/Titos/Absolut (Vodka), Hendricks/Tanqueray/Bombay (Gin), Makers/Woodford/Buffalo Trace (Bourbon), Glenfiddich/Macallan/Lagavulin (Scotch), etc.',
  code:`<span class="cm">GET</span> /api/v1/ingredients/categories/<span class="cn">:id</span>/products
 <span class="cm">GET</span> /api/v1/ingredients/products/search?q=
@@ -1282,7 +1282,7 @@ ProductWithCategory {
  conn:['defteros','categories-api','mybar-api','station-slot-api','ingredients-catalog'],
  guide:`<div class="gs"><div class="gt">Add new product</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">INSERT with category_id and barcode in metadata</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Set is_common=false for user-submitted products</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Scanner detection matches via barcode → product_id lookup</span></div></div></div>`},
 
-{id:'station-slot-api',l:'Station Slot API',cat:'backend',sz:6,rel:1,
+{id:'station-slot-api',l:'Station Slot API',cat:'backend',sz:6,rel:1,cl:'Go',
  desc:'PUT /api/v1/devices/device-number/:deviceNumber/stations/:stationName. Auth: legacy Ory. Slot names A-F (case-insensitive). Validates device ownership via user_device_links. Auto-creates device row on first slot update. Stores in devices.configuration JSONB: config["stations"][slotName] = {product_id, ingredient_name, category, is_perishable, updated_at}. Returns StationSlotResponse{device_number, slot_name, product:ProductWithCategory, updated_at}. Error 400 on invalid slot, 403 on ownership fail, 404 device not found.',
  code:`<span class="cm">PUT</span> /api/v1/devices/device-number/<span class="cn">:deviceNumber</span>/stations/<span class="cn">:stationName</span>
 body: { "product_id": "UUID" }
@@ -1307,7 +1307,7 @@ body: { "product_id": "UUID" }
  conn:['defteros','devices-api','products-api','categories-api','mybar-api'],
  guide:`<div class="gs"><div class="gt">Station slot update flow</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Validate slot A–F, ownership via user_device_links</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Auto-create devices row if device_number not found</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">JSONB UPDATE: config["stations"]["A"] = product metadata</span></div></div></div>`},
 
-{id:'recipe-ratings-api',l:'Recipe Ratings API',cat:'backend',sz:4,rel:.8,
+{id:'recipe-ratings-api',l:'Recipe Ratings API',cat:'backend',sz:4,rel:.8,cl:'Go',
  desc:'POST /api/v1/recipes/:id/rate (JWT) — submit 1–5 star rating. GET /api/v1/recipes/:id/reviews — paginated reviews with display_name + avatar. RecipeReview model: id, user_id, display_name, avatar_url, rating 1-5, comment, created_at. Ratings stored in recipe_ratings table. avg_rating and total_ratings on recipes table are aggregated (updated via trigger or batch). ListReviewsResponse: reviews[], page, per_page, total_count.',
  code:`<span class="cm">POST</span> /api/v1/recipes/<span class="cn">:id</span>/rate
 body: { "rating": 1-5 }
@@ -1328,7 +1328,7 @@ RecipeReview {
 
 // ── Granular: Data / DB Schemas ────────────────────────────────
 
-{id:'db-mybar-schema',l:'MyBar DB Schema',cat:'data',sz:6,rel:1,
+{id:'db-mybar-schema',l:'MyBar DB Schema',cat:'data',sz:6,rel:1,cl:'SQL',
  desc:'Three-layer V4.1 schema. CATEGORIES: id UUID PK, name VARCHAR(100), type CHECK(spirit|mixer|garnish|other), parent_category_id UUID FK self, icon VARCHAR(10), is_garnish BOOL, slug UNIQUE. 65 seeded rows. Indexes: slug, type, parent. PRODUCTS: id UUID PK, name VARCHAR(200), category_id UUID FK, brand VARCHAR(200), image_url TEXT, volume_ml INT, is_common BOOL. 250+ seeded rows. Indexes: category_id, name, is_common. MY_BAR_ITEMS: id UUID PK, user_id TEXT, product_id UUID FK, notes TEXT, added_at TIMESTAMPTZ. UNIQUE(user_id, product_id). Index on user_id.',
  code:`<span class="cc">-- categories (65 rows seeded)</span>
 id UUID PK, name VARCHAR(100),
@@ -1351,7 +1351,7 @@ UNIQUE(user_id, product_id)`,
  conn:['mybar-api','station-slot-api','products-api','categories-api','postgres'],
  guide:`<div class="gs"><div class="gt">Check for duplicate product in bar</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">UNIQUE(user_id, product_id) enforces at DB level</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Service catches "duplicate key" error and returns 409</span></div></div></div>`},
 
-{id:'db-recipes-schema',l:'Recipes DB Schema',cat:'data',sz:6,rel:1,
+{id:'db-recipes-schema',l:'Recipes DB Schema',cat:'data',sz:6,rel:1,cl:'SQL',
  desc:'Normalized recipe catalog (migration 055). RECIPES: id UUID PK, name VARCHAR(255), description TEXT, category VARCHAR(100) (mixing technique: shaken/stirred/built), difficulty VARCHAR(50) (easy/medium/hard), prep_time_minutes INT DEFAULT 5, image_url TEXT, steps TEXT[], tags TEXT[], creator_id TEXT, creator_type (official|community), avg_rating NUMERIC(3,2), total_ratings INT, total_crafts INT, barsys_compatible BOOL, primary_spirit VARCHAR(100), moods TEXT[], is_featured BOOL, search_vector TSVECTOR (auto-trigger), source_cocktail_id UUID FK. RECIPE_INGREDIENTS: recipe_id FK, ingredient_id FK?, name VARCHAR(200), amount NUMERIC(8,2), unit VARCHAR(50), sort_order INT.',
  code:`<span class="cc">-- recipes table (migration 055)</span>
 id UUID PK, name VARCHAR(255),
@@ -1374,7 +1374,7 @@ unit VARCHAR(50), sort_order INT`,
  conn:['recipe-catalog-api','recipes-api','vector-embeddings','postgres','recipe-ratings-api'],
  guide:`<div class="gs"><div class="gt">Full-text search implementation</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">search_vector = tsvector of name(A)+description(B)+category(C)+tags(D)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Auto-updated via trigger on INSERT/UPDATE</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Query: r.search_vector @@ plainto_tsquery('english', q)</span></div></div></div>`},
 
-{id:'db-mixlists-schema',l:'MixLists DB Schema',cat:'data',sz:5,rel:.9,
+{id:'db-mixlists-schema',l:'MixLists DB Schema',cat:'data',sz:5,rel:.9,cl:'SQL',
  desc:'COCKTAIL_MIXLISTS: id UUID PK, name VARCHAR(255), description TEXT, author JSONB{name,establishment,year,bio,website}, tags JSONB[], image JSONB{url,alt,photographer}, deprecated_id INT, barsys_360_compatible BOOL DEFAULT true, is_deleted BOOL (soft delete), deleted_at TIMESTAMP. Indexes: GIN on tags, GIN on author, partial on is_deleted=false. COCKTAIL_MIXLIST_ITEMS: id UUID PK, mixlist_id FK CASCADE, cocktail_id FK CASCADE, position INT, UNIQUE(mixlist_id,cocktail_id). Indexes: mixlist_id, cocktail_id, position. Delta sync: updated_at >= timestamp.',
  code:`<span class="cc">-- cocktail_mixlists</span>
 id UUID PK, name VARCHAR(255),
@@ -1394,7 +1394,7 @@ UNIQUE(mixlist_id, cocktail_id)`,
  conn:['mixlists-api','recipe-catalog-api','cocktail-legacy','postgres'],
  guide:`<div class="gs"><div class="gt">Soft delete mixlist</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">SET is_deleted=true, deleted_at=NOW() (not hard delete)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Partial index WHERE is_deleted=false keeps queries fast</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Delta sync returns is_deleted=true entries so iOS can purge local cache</span></div></div></div>`},
 
-{id:'cocktail-legacy',l:'Cocktail Recipes (Legacy)',cat:'data',sz:4,rel:.8,
+{id:'cocktail-legacy',l:'Cocktail Recipes (Legacy)',cat:'data',sz:4,rel:.8,cl:'SQL',
  desc:'cocktail_recipes table — original recipe store, now dual-tracked alongside new normalized recipes table (migration 055). source_cocktail_id FK on recipes table links back. CocktailService still references cocktail_recipes for mixlist items (cocktail_mixlist_items.cocktail_id → cocktail_recipes). V4.1 migration ongoing: new recipes table is canonical; cocktail_recipes maintained for backwards compat. MySQL legacy DB also has older recipe data read via RecipeService dual-read pattern.',
  code:`<span class="cc">// Dual-read pattern in RecipeService</span>
 <span class="ck">func</span> NewRecipeService(
@@ -1412,7 +1412,7 @@ cocktail_recipes, NOT recipes`,
  conn:['mysql','postgres','recipe-catalog-api','mixlists-api','recipes-api'],
  guide:`<div class="gs"><div class="gt">Which table to query?</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">New /api/v1/recipes* endpoints → recipes table (PostgreSQL)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">/cache/mixlists items → still references cocktail_recipes</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">During migration, both must stay in sync until cocktail_mixlist_items FK is migrated</span></div></div></div>`},
 
-{id:'availability-engine',l:'Availability Engine',cat:'data',sz:6,rel:1,
+{id:'availability-engine',l:'Availability Engine',cat:'data',sz:6,rel:1,cl:'SQL',
  desc:'Server-side availableOnly filter + iOS local matching. SERVER: GET /recipes?availableOnly=true injects NOT EXISTS subquery. For each recipe_ingredient, checks user station JSONB config OR my_bar_items → products → categories (LOWER(cat.name) = LOWER(ingredient.name)). iOS CLIENT: isBarsys360RecipeCraftable() iterates recipe ingredients, exact case-insensitive match on category.primary + category.secondary against StationCleaningFlow array. No fuzzy matching — exact pair required. Perishable gate: updatedAt > 48h triggers cleaning modal.',
  code:`<span class="cc">-- Server availableOnly subquery (simplified)</span>
 <span class="ck">NOT EXISTS</span> (
@@ -1436,7 +1436,7 @@ cocktail_recipes, NOT recipes`,
 
 // ── Missing Backend Nodes ──────────────────────────────────────────────────
 
-{id:'auth-api',l:'Auth API',cat:'backend',sz:5,rel:1,
+{id:'auth-api',l:'Auth API',cat:'backend',sz:5,rel:1,cl:'Go',
  desc:'Phone OTP + Apple/Google SSO auth endpoints. POST /auth/send-code issues SMS via Ory self-service. POST /auth/verify-code returns RS256 JWT + refresh token. POST /auth/sso/apple and /auth/sso/google handle SIWA/Google tokens. POST /auth/logout invalidates Ory session. POST /auth/preferences saves onboarding answers. RATE_LIMIT_AUTH=5 req/min per IP enforced.',
  code:`<span class="cc">// auth_flow_handler.go (app.go lines 432-438)</span>
 POST /api/v1/auth/send-code       <span class="cc">// SMS OTP → Ory</span>
@@ -1451,7 +1451,7 @@ POST /api/v1/users/me/agreements  <span class="cc">// T&amp;C accept</span>`,
  conn:['ory','profile-api','jwt-middleware','ios-app','onboarding'],
  guide:`<div class="gs"><div class="gt">Add new auth method</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add handler in <code>auth_flow_handler.go</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Register route in <code>app.go</code> (no JWT middleware — pre-auth)</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Rate limiter enforces 5 req/min per IP — new endpoints inherit this</span></div></div></div>`},
 
-{id:'jwt-middleware',l:'JWT + Rate Limiter',cat:'backend',sz:4,rel:1,
+{id:'jwt-middleware',l:'JWT + Rate Limiter',cat:'backend',sz:4,rel:1,cl:'Go',
  desc:'RS256 JWT validation middleware protecting all /my/* routes. RequireAuth() validates Bearer token signed with JWT_RSA_PRIVATE_KEY. OptionalAuth() attaches user if present. Party mode uses separate HS256 symmetric guest tokens (PARTY_JWT_SECRET) via PartyOrGuestAuthMiddleware. Three-tier rate limiter: auth=5, write=30, read=100 req/min per IP via RATE_LIMIT_* env vars.',
  code:`<span class="cc">// middleware/jwt_auth.go</span>
 <span class="ck">func</span> RequireAuth() echo.MiddlewareFunc
@@ -1467,8 +1467,8 @@ read:  100 <span class="cc">// RATE_LIMIT_READ</span>`,
  conn:['ory','defteros','auth-api','party-api'],
  guide:`<div class="gs"><div class="gt">Debug JWT validation failure</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Ensure token is RS256 Bearer — not raw Ory session token</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Party routes use HS256 (PARTY_JWT_SECRET) — <code>PartyOrGuestAuthMiddleware</code> handles both</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">OptionalAuth() silently passes — use RequireAuth() where JWT is mandatory</span></div></div></div>`},
 
-{id:'delta-sync',l:'Delta Sync Cache',cat:'backend',sz:5,rel:1,
- desc:'Incremental data sync — clients send timestamp, receive only records updated since. All endpoints use ?timestamp=<unix> param (not ?ts=). Registered routes: GET /cache/recipes?timestamp=, /cache/mixlists?timestamp=, /cache/profile, /cache/devices, /cache/stations, /cache/craft-sessions, /cache/reviews. cache_handler.go + cache_service.go. iOS stores per-resource timestamps in UserDefaults. Eliminates full-refetch on every app open.',
+{id:'delta-sync',l:'Delta Sync Cache',cat:'backend',sz:5,rel:1,cl:'Go',
+ desc:'Incremental data sync — clients send timestamp, receive only records updated since. All endpoints use ?timestamp={unix} param (not ?ts=). Registered routes: GET /cache/recipes?timestamp=, /cache/mixlists?timestamp=, /cache/profile, /cache/devices, /cache/stations, /cache/craft-sessions, /cache/reviews. cache_handler.go + cache_service.go. iOS stores per-resource timestamps in UserDefaults. Eliminates full-refetch on every app open.',
  code:`<span class="cc">// cache_handler.go — ALL use ?timestamp=</span>
 GET /api/v1/cache/recipes?timestamp=&lt;unix&gt;
 GET /api/v1/cache/mixlists?timestamp=&lt;unix&gt;
@@ -1486,7 +1486,7 @@ UserDefaults.standard.set(
  conn:['recipes-api','mixlists-api','mybar-api','devices-api','profile-api','sqlite-cache','ios-app'],
  guide:`<div class="gs"><div class="gt">Force full resync</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Clear UserDefaults timestamp key for the target resource</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>GET /cache/recipes</code> with no timestamp — returns full dataset</span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">SQLite replaced entirely — all existing rows overwritten</span></div></div></div>`},
 
-{id:'chat-history',l:'Chat History DB',cat:'data',sz:4,rel:1,
+{id:'chat-history',l:'Chat History DB',cat:'data',sz:4,rel:1,cl:'SQL',
  desc:'Bond AI conversation persistence. ACTIVE table is conversation_messages (role/content/conversation_id/user_id/created_at) — chat_history is legacy and no longer primary. conversation_messages uses session_id TEXT directly (no separate conversations table). chat_history_summary stores compressed session summaries injected as context on next session. chat_handler_ext.go exposes GET /chat/history and POST /chat/feedback. Indexed by user_id + session_id in PostgreSQL.',
  code:`<span class="cc">-- chat_history</span>
 id         UUID PK
@@ -1508,7 +1508,7 @@ POST /api/v1/chat/feedback`,
  conn:['bond-ai','chat-api','postgres','bond'],
  guide:`<div class="gs"><div class="gt">Retrieve conversation history</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">GET /api/v1/chat/history (JWT required)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Returns from <code>conversation_messages</code> — not legacy <code>chat_history</code> table</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Filter by session_id to isolate a single conversation</span></div></div></div>`},
 
-{id:'media-upload',l:'Media Upload (GCS)',cat:'backend',sz:4,rel:1,
+{id:'media-upload',l:'Media Upload (GCS)',cat:'backend',sz:4,rel:1,cl:'Go',
  desc:'GCS-backed media upload system. PUT /my/profile/picture handles multipart user avatar upload. Device docs also stored in GCS. Metadata tracked in media_storage table (bucket, path, content_type, size_bytes). GCP Storage Repository at repositories/gcp/storage_repository.go. Configurable via GOOGLE_STORAGE_BUCKET_NAME + GOOGLE_STORAGE_BASE_PATH. Returns CDN URL after upload.',
  code:`<span class="cc">// storage_repository.go</span>
 <span class="ck">func</span> UploadMedia(ctx, bucket, path, reader) (url, err) {
@@ -1526,7 +1526,7 @@ PUT /api/v1/my/profile/picture`,
  conn:['gcs','profile-api','devices-api','postgres'],
  guide:`<div class="gs"><div class="gt">Debug upload failure</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Verify <code>GOOGLE_STORAGE_BUCKET_NAME</code> env var is set</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst"><code>GOOGLE_APPLICATION_CREDENTIALS_JSON</code> must be <code>data:application/json;base64,...</code> format</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Compress to &lt;2MB before upload — no server-side compression</span></div></div></div>`},
 
-{id:'party-websocket',l:'Party WebSocket Hub',cat:'backend',sz:4,rel:1,
+{id:'party-websocket',l:'Party WebSocket Hub',cat:'backend',sz:4,rel:1,cl:'Go',
  desc:'Real-time WebSocket for party mode. GET /api/v1/party/sessions/:id/ws upgrades connection. PartyHub manages rooms: BroadcastToSession (all participants), BroadcastToGuest (targeted), BroadcastToHost. Events: party state, shake challenge results, leaderboard deltas, guest join/leave. Accepts both RS256 JWT (hosts) and HS256 guest tokens. Global + city-based leaderboards.',
  code:`<span class="cc">// party_handler.go — PartyHub</span>
 GET /api/v1/party/sessions/:id/ws
@@ -1546,7 +1546,7 @@ leaderboard_delta  | guest_joined | shake_result`,
  conn:['party-api','websocket-hub','ios-app'],
  guide:`<div class="gs"><div class="gt">Debug WebSocket drop</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Host sends RS256 JWT; guest sends HS256 — both accepted by PartyOrGuestAuthMiddleware</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">WS connection idles out — implement 30s ping/pong heartbeat on iOS side</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Hub broadcasts are fire-and-forget — disconnected clients miss events</span></div></div></div>`},
 
-{id:'pubsub-topics',l:'Pub/Sub Topics',cat:'infra',sz:4,rel:1,
+{id:'pubsub-topics',l:'Pub/Sub Topics',cat:'infra',sz:4,rel:1,cl:'Go / YAML',
  desc:'Four Google Pub/Sub topics: UserData (auth + profile changes, consumed by analytics), RemoveUser (GDPR deletion cascade across all services), StationConfig (station slot updates to downstream consumers), FullRecipe (recipe create/update events for vector embedding pipeline). All names via GOOGLE_PUBSUB_TOPIC_* env vars. Repository: repositories/gcp/pubsub_repository.go.',
  code:`<span class="cc">// pubsub_repository.go</span>
 TopicUserData      = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_USER_DATA"</span>)
@@ -1565,7 +1565,7 @@ TopicFullRecipe    = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_FULL_RECIPE"</spa
 
 // ── Missing iOS Nodes ──────────────────────────────────────────────────────
 
-{id:'coordinator-nav',l:'Coordinator Navigation',cat:'ios',sz:5,rel:1,
+{id:'coordinator-nav',l:'Coordinator Navigation',cat:'ios',sz:5,rel:1,cl:'Swift',
  desc:'Full Coordinator pattern IS implemented — 10 coordinator files: Coordinator.swift (protocol base), AppCoordinator, AuthCoordinator, StoryboardCoordinator, RecipesCoordinator, BarBotCoordinator, CraftingCoordinator, ControlCenterCoordinator, DeviceCoordinator, MakeMyOwnCoordinator. Each conforms to Coordinator protocol with start() and childCoordinators[]. AppCoordinator at root checks Keychain session_token to route to AuthCoordinator vs MainTabBarCoordinator. UIViewController extensions (Navigation, LegacyNavigation, DeepLinks, Alerts) supplement coordinator navigation.',
  code:`<span class="cc">// Coordinator.swift — base protocol</span>
 <span class="ck">protocol</span> Coordinator: AnyObject {
@@ -1587,7 +1587,7 @@ TopicFullRecipe    = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_FULL_RECIPE"</spa
  conn:['ios-app','auth-flow','barbot','crafting','device-pairing-ui','recipe-browse','mixlists','deep-links'],
  guide:`<div class="gs"><div class="gt">Add a new coordinator</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Create class conforming to <code>Coordinator</code> protocol — implement <code>start()</code> and <code>childCoordinators[]</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Add to parent coordinator's <code>childCoordinators</code> before calling <code>start()</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Remove from <code>childCoordinators</code> on dismiss or you'll leak the coordinator</span></div></div></div>`},
 
-{id:'ble-manager',l:'BLE Manager',cat:'ios',sz:5,rel:1,
+{id:'ble-manager',l:'BLE Manager',cat:'ios',sz:5,rel:1,cl:'Swift',
  desc:'BleManager singleton (sharedManager) manages full CoreBluetooth lifecycle. Implements CBCentralManagerDelegate + CBPeripheralDelegate in-class. Key methods: startBleScan(), stopBleScan(), connect(), disconnect(), isBarsys360Connected(), isCoasterConnected(), writeCommand(). Commands are constructed inline and sent via writeCommand() as UTF-8 Data to the UART Write characteristic. BleManagerDelegate.swift provides the delegate protocol used by VCs to receive events. No separate BleCommandBuilder class.',
  code:`<span class="cc">// BleManager.swift</span>
 <span class="ck">class</span> BleManager: NSObject,
@@ -1606,7 +1606,7 @@ TopicFullRecipe    = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_FULL_RECIPE"</spa
  conn:['ble-hardware','ble-opcodes','crafting','stations-menu-vc','barbot','coordinator-nav','control-center'],
  guide:`<div class="gs"><div class="gt">Handle BLE reconnect</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">BleManager auto-reconnects with exponential backoff on disconnect</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Commands queued during reconnect are NOT retried — resend after <code>centralManagerDidConnect</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">15s scan timeout, 10s connection timeout — show UI if exceeded</span></div></div></div>`},
 
-{id:'speak-easy-ws',l:'Speak Easy WebSocket',cat:'ios',sz:4,rel:1,
+{id:'speak-easy-ws',l:'Speak Easy WebSocket',cat:'ios',sz:4,rel:1,cl:'Swift',
  desc:'SocketManager.swift in Helpers/SocketManager/ and SocketDelegates.swift provide WebSocket infrastructure for the Speak Easy smart speaker product. AppStateManager handles app state for reconnection. Actual BarBot AI uses SSE via BarBotSSEClient.swift (URLSession.bytes) — not WebSocket. Starscream library and bouncer.barsys.com endpoint are planned for Speak Easy product; verify Podfile for current integration status.',
  code:`<span class="cc">// SocketManager.swift — Starscream WebSocket</span>
 <span class="ck">import</span> Starscream
@@ -1627,7 +1627,7 @@ TopicFullRecipe    = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_FULL_RECIPE"</spa
  conn:['ios-app','coordinator-nav','barbot','websocket-hub'],
  guide:`<div class="gs"><div class="gt">BarBot vs Speak Easy transport</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">BarBot AI uses SSE via <code>BarBotSSEClient.swift</code> — NOT WebSocket</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Speak Easy uses <code>SocketManager.swift</code> (Starscream) to <code>bouncer.barsys.com</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Verify Starscream is in Podfile before calling SocketManager.connect()</span></div></div></div>`},
 
-{id:'local-db',l:'Local SQLite DB',cat:'ios',sz:5,rel:1,
+{id:'local-db',l:'Local SQLite DB',cat:'ios',sz:5,rel:1,cl:'Swift',
  desc:'DBManager singleton wraps raw sqlite3 C API (no FMDB or GRDB). All methods in single DBManager class with DBHelper, DBProvider, DBQueries helpers. Core methods: insertToDatabase(), fetchMixlists(), fetchRecipes(), fetchFavourites(). DBQueries.swift holds SQL string constants. DBHelper.swift handles db file init. Recipes and mixlists cached after API fetch; read locally on subsequent access. Sync timestamps stored in UserDefaults.',
  code:`<span class="cc">// DBManager.swift — raw sqlite3</span>
 <span class="ck">class</span> DBManager {
@@ -1646,7 +1646,7 @@ TopicFullRecipe    = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_FULL_RECIPE"</spa
  conn:['sqlite-cache','recipe-browse','mixlists','my-bar','delta-sync','favorites-drinks','recipe-model-ios'],
  guide:`<div class="gs"><div class="gt">Schema migration</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">No migration framework — schema changes require fresh install or manual ALTER TABLE</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Test cycle: delete app → reinstall → verify initial delta sync completes</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">SQL string constants live in <code>DBQueries.swift</code> — edit there first</span></div></div></div>`},
 
-{id:'analytics-layer',l:'Analytics + Braze',cat:'ios',sz:4,rel:1,
+{id:'analytics-layer',l:'Analytics + Braze',cat:'ios',sz:4,rel:1,cl:'Swift',
  desc:'Dual analytics: TrackEventsClass fires 50+ custom events (TrackEventName enum) to Defteros /analytics endpoint; Braze SDK initialized in AppDelegate with API key d5beb9b6-9499-4213-b4dd-f36322e1d444 and endpoint sdk.iad-07.braze.com for push + in-app messaging. AnalyticsConsentManager handles GDPR/CCPA consent gates before event firing. IPAddressManager (Swift actor, thread-safe) fetches public IP for geo-tagging events. Firebase Analytics also integrated for crash reporting.',
  code:`<span class="cc">// TrackEventsClass.swift — 50+ events</span>
 <span class="ck">enum</span> TrackEventName: String {
@@ -1669,7 +1669,7 @@ TopicFullRecipe    = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_FULL_RECIPE"</spa
  conn:['ios-app','push-notifications-api','profile-mgmt','auth-flow'],
  guide:`<div class="gs"><div class="gt">Add a new tracked event</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add case to <code>TrackEventName</code> enum with the event string</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>TrackEventsClass.track(.yourEvent, properties: [:])</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Event is silently dropped if <code>AnalyticsConsentManager.isConsentGranted == false</code></span></div></div></div>`},
 
-{id:'deep-links',l:'Deep Links',cat:'ios',sz:4,rel:1,
+{id:'deep-links',l:'Deep Links',cat:'ios',sz:4,rel:1,cl:'Swift',
  desc:'URL scheme barsysapp:// (confirmed in Info.plist for bundle com.llc.barsysapp). Deep-link handling is NOT yet implemented — no openURL handler in AppDelegate, no openURLContexts in SceneDelegate, no UIViewController+DeepLinks.swift file. The URL scheme is declared infrastructure only with no routing logic in the current codebase.',
  code:`<span class="cc">// Info.plist</span>
 CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
@@ -1687,7 +1687,7 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  conn:['ios-app','coordinator-nav','recipe-browse','mixlists','barbot'],
  guide:`<div class="gs"><div class="gt">Implement deep link routing</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add <code>scene(_:openURLContexts:)</code> to <code>SceneDelegate.swift</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Parse <code>barsysapp://</code> URL path components → route to coordinator</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">URL scheme declared in Info.plist but routing logic not yet implemented</span></div></div></div>`},
 
-{id:'security-layer',l:'Security Layer',cat:'ios',sz:4,rel:1,
+{id:'security-layer',l:'Security Layer',cat:'ios',sz:4,rel:1,cl:'Swift',
  desc:'Auth tokens stored in KEYCHAIN via KeychainHelper.swift (11 keys). SSL pinning IS implemented via SSLPinningManager.swift using SHA256 SPKI certificate pinning for api-ng.barsys.com (hash: OdSlmQD9NWJh4EbcOHBxkhygPwNSwA9Q91eounfbcoE=) and ci.bond-mvp1.barsys.com (hash: kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=). ENABLE_STATIC_AUTH_TOKEN env var enables dev auth bypass in non-production builds. URLSession delegate intercepts didReceive challenge for pinning enforcement.',
  code:`<span class="cc">// SSLPinningManager.swift — SHA256 SPKI pinning</span>
 <span class="ck">class</span> SSLPinningManager {
@@ -1704,7 +1704,7 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  conn:['ios-app','auth-flow','defteros','local-db'],
  guide:`<div class="gs"><div class="gt">Rotate pinned certificate</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Extract new SHA256 SPKI hash from updated certificate</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Update <code>pinnedHashes</code> array in <code>SSLPinningManager.swift</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Requires app release — pinning enforced at URLSession level, no runtime override</span></div></div></div>`},
 
-{id:'control-center',l:'Control Center',cat:'ios',sz:5,rel:1,
+{id:'control-center',l:'Control Center',cat:'ios',sz:5,rel:1,cl:'Swift',
  desc:'ControlCenterViewController/ViewModel is the device management dashboard entered after pairing. Shows station grid (up to 6 slots), BLE connection status, pour history shortcut. ControlCenterCoordinator manages sub-flows: StationsMenuVC (slot config), StationCleaningFlowVC (guided clean), DeviceRenameVC. ControlCenterModel tracks live slot states. Primary hub for all hardware interaction beyond simple crafting.',
  code:`<span class="cc">// ControlCenterViewModel.swift</span>
 <span class="ck">class</span> ControlCenterViewModel {
@@ -1724,7 +1724,7 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  conn:['stations-menu-vc','station-cleaning','device-pairing-ui','ble-manager','barbot','coordinator-nav','station-slot-api'],
  guide:`<div class="gs"><div class="gt">Add station slot action</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add method to <code>ControlCenterViewModel</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Send BLE command via <code>BleManager.sharedManager.writeCommand()</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Update <code>@Published var stations</code> to trigger UI refresh</span></div></div></div>`},
 
-{id:'drink-complete',l:'Drink Complete Flow',cat:'ios',sz:4,rel:1,
+{id:'drink-complete',l:'Drink Complete Flow',cat:'ios',sz:4,rel:1,cl:'Swift',
  desc:'DrinkCompleteViewModel handles post-crafting UX. Animates completion screen with drink image + name. Shows Add to Favorites and social share sheet. Triggered by CraftingCoordinator.showDrinkComplete() when BleManager receives the DATA Flushed BLE response (which follows opcode 221,405 remove-glass signal). No rateRecipe() method or BarBotHistoryManager in current codebase.',
  code:`<span class="cc">// DrinkCompleteViewModel.swift</span>
 <span class="ck">class</span> DrinkCompleteViewModel {
@@ -1742,7 +1742,7 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  conn:['crafting','recipe-ratings-api','barbot-history','favorites-drinks','ble-opcodes','ble-manager'],
  guide:`<div class="gs"><div class="gt">Trigger drink complete</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">BleManager receives opcode <code>221,405</code> (remove glass signal)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">CraftingCoordinator calls <code>showDrinkComplete(recipe:)</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">DrinkCompleteViewModel handles rating + favorites — both are optional user actions</span></div></div></div>`},
 
-{id:'coaster-device-support',l:'Coaster Device Support',cat:'ios',sz:4,rel:1,
+{id:'coaster-device-support',l:'Coaster Device Support',cat:'ios',sz:4,rel:1,cl:'Swift',
  desc:'BleManager supports two Barsys device types beyond BarBot 360: Barsys Coaster (smart coaster that tracks glass placement) and Barsys Shaker (automated cocktail shaker). isCoasterConnected() / isShaker() methods in BleManager distinguish device type post-pairing. CoasterDeviceVC handles coaster-specific setup flow. BLE service UUID differs per device type — discovery filters by supported service UUIDs. Both device types share same Nordic UART UUIDs + opcodes; distinction is by peripheral name prefix (barsys_c vs barsys_360), not by opcode set.',
  code:`<span class="cc">// BleManager.swift — multi-device support</span>
 <span class="ck">func</span> isCoasterConnected() -> Bool {
@@ -1759,7 +1759,7 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  conn:['ble-manager','ble-hardware','device-pairing-ui','crafting','control-center'],
  guide:`<div class="gs"><div class="gt">Distinguish device type post-pairing</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Call <code>isCoasterConnected()</code> or <code>isBarsys360Connected()</code> after CBPeripheral connects</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Distinction is by peripheral name prefix (barsys_c vs barsys_360), not service UUID</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">All device types share same Nordic UART UUIDs and opcode set</span></div></div></div>`},
 
-{id:'custom-recipe-creation',l:'Custom Recipe Creation',cat:'ios',sz:4,rel:1,
+{id:'custom-recipe-creation',l:'Custom Recipe Creation',cat:'ios',sz:4,rel:1,cl:'Swift',
  desc:'MakeMyOwnViewController + MakeMyOwnCoordinator allow users to build custom cocktail recipes from scratch. Users select base spirits, mixers, and garnishes from their MyBar inventory. MakeMyOwnViewModel validates ingredient combinations and calculates pour volumes for BarBot 360 compatibility. Finished recipes can be saved to MyRecipes (POST /my/recipes) or crafted immediately. MakeMyOwnCoordinator is one of the 10 confirmed coordinator classes.',
  code:`<span class="cc">// MakeMyOwnCoordinator.swift</span>
 <span class="ck">class</span> MakeMyOwnCoordinator: Coordinator {
@@ -1774,7 +1774,7 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  conn:['ios-app','coordinator-nav','my-bar','recipes-api','crafting','recipe-model-ios'],
  guide:`<div class="gs"><div class="gt">Save custom recipe</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Build recipe in <code>MakeMyOwnViewModel</code> with ingredients from MyBar</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">POST /api/v1/my/recipes → saved with <code>creator_type: "community"</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Total pour volume must fit Barsys 360 capacity — validate before crafting</span></div></div></div>`},
 
-{id:'web-content-viewer',l:'Web Content Viewer',cat:'ios',sz:3,rel:.85,
+{id:'web-content-viewer',l:'Web Content Viewer',cat:'ios',sz:3,rel:.85,cl:'Swift',
  desc:'WebViewController wraps WKWebView to display in-app web content for Terms & Conditions, Privacy Policy, and legal pages. Loaded from CDN or barsys.com URLs. Handles navigation events to prevent external redirects. Used from onboarding (T&C acceptance flow), Settings/Profile for legal docs, and any deep-linked legal content. Simple WKNavigationDelegate implementation — no JavaScript bridging required.',
  code:`<span class="cc">// WebViewController.swift</span>
 <span class="ck">class</span> WebViewController: UIViewController {
@@ -1792,7 +1792,7 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  conn:['ios-app','coordinator-nav','onboarding','profile-mgmt'],
  guide:`<div class="gs"><div class="gt">Load new URL</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Set <code>WebViewController.urlString</code> before presenting</span></div><div class="gstep"><span class="gsn">2</span><span class="gst"><code>viewDidLoad</code> auto-loads URL via <code>WKWebView.load(URLRequest)</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Implement <code>WKNavigationDelegate</code> to block external redirects</span></div></div></div>`},
 
-{id:'event-tracking-system',l:'Event Tracking System',cat:'ios',sz:4,rel:1,
+{id:'event-tracking-system',l:'Event Tracking System',cat:'ios',sz:4,rel:1,cl:'Swift',
  desc:'Centralized event tracking via TrackEventName enum with 74 named events covering the full user journey: onboarding (signup_started, otp_verified), discovery (recipe_viewed, search_performed), crafting (craft_started, drink_crafted, craft_abandoned), social (mixlist_shared, friend_added), hardware (device_paired, ble_connected, pour_started). All events routed through TrackEventsClass which POSTs to Defteros /analytics and also logs to Braze and Firebase. Each event carries user_id, session_id, timestamp, and context properties.',
  code:`<span class="cc">// TrackEventName.swift — full enum</span>
 <span class="ck">enum</span> TrackEventName: String {
@@ -1807,7 +1807,7 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  conn:['analytics-layer','ios-app','crafting','recipe-browse','barbot','device-pairing-ui','onboarding'],
  guide:`<div class="gs"><div class="gt">Debug missing event</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Verify <code>AnalyticsConsentManager.isConsentGranted == true</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Check event case exists in <code>TrackEventName</code> enum</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Monitor Defteros <code>/analytics</code> endpoint logs for 400/401 errors</span></div></div></div>`},
 
-{id:'analytics-consent-management',l:'Analytics Consent',cat:'ios',sz:3,rel:.9,
+{id:'analytics-consent-management',l:'Analytics Consent',cat:'ios',sz:3,rel:.9,cl:'Swift',
  desc:'AnalyticsConsentManager (enum, not class) enforces GDPR/CCPA consent. Key property: isConsentGranted (static var — checks UserDefaults via UserDefaultsClass). TrackEventsClass guards every event: guard AnalyticsConsentManager.isConsentGranted else { return }. Also exposes hasPromptBeenShown, isTrackingAuthorized, isIPCollectionPermitted, setConsent(_ granted: Bool), requestConsentIfNeeded(), resetConsent().',
  code:`<span class="cc">// AnalyticsConsentManager.swift</span>
 <span class="ck">class</span> AnalyticsConsentManager {
@@ -1825,7 +1825,7 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  conn:['analytics-layer','ios-app','onboarding','profile-mgmt'],
  guide:`<div class="gs"><div class="gt">Handle consent denial</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Call <code>requestConsentIfNeeded()</code> on first launch — modal shown once</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">If denied: all <code>TrackEventsClass</code> calls silently guard-return — no data collected</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">User can update via <code>setConsent(.granted)</code> from Settings screen</span></div></div></div>`},
 
-{id:'image-picker-upload',l:'Image Picker + Upload',cat:'ios',sz:3,rel:.85,
+{id:'image-picker-upload',l:'Image Picker + Upload',cat:'ios',sz:3,rel:.85,cl:'Swift',
  desc:'ImagePickerViewController wraps UIImagePickerController for camera + photo library access. Used in two flows: (1) profile picture — user selects/captures photo, compressed to JPEG, uploaded via PUT /my/profile/picture to GCS via Defteros media-upload service; (2) ingredient scanning — UploadIngredientsImage flow sends image to barbot-ml for bottle/label detection. Image compression and aspect ratio normalization applied before upload. Camera permission handled via NSCameraUsageDescription.',
  code:`<span class="cc">// ImagePickerViewController.swift</span>
 <span class="ck">class</span> ImagePickerViewController:
@@ -1842,7 +1842,7 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  conn:['ios-app','profile-mgmt','media-upload','barbot-ml','scanner-api'],
  guide:`<div class="gs"><div class="gt">Handle camera permission denied</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Check <code>AVCaptureDevice.authorizationStatus(.video)</code> before presenting picker</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Show alert directing user to Settings if <code>.denied</code> or <code>.restricted</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst"><code>NSCameraUsageDescription</code> must be in Info.plist — rejection without it</span></div></div></div>`},
 
-{id:'video-playback',l:'Video Playback',cat:'ios',sz:3,rel:.8,
+{id:'video-playback',l:'Video Playback',cat:'ios',sz:3,rel:.8,cl:'Swift',
  desc:'VideoPlayerManager (actual class name) handles in-app video. Uses AVPlayer + AVPlayerLayer embedded in UIView — not AVPlayerViewController. Used in TutorialViewController (recipe walkthroughs) and DevicePairedViewController (device onboarding). BarBot onboarding uses bundled MP4 assets from app bundle. User-initiated play only. No video_url field exists on Recipe model.',
  code:`<span class="cc">// VideoManager.swift</span>
 <span class="ck">class</span> VideoManager {
@@ -2255,26 +2255,27 @@ function openPanel(n){
 }
 function showTab(n,tab){
   const dtb=document.getElementById('dtb');
-  if(tab==='overview'){
-    let h='';
-    if(n.desc)h+='<div class="os"><div class="ol">Description</div><div class="otx">'+n.desc+'</div></div>';
-    if(n.conn&&n.conn.length){
-      h+='<div class="os"><div class="ol">Connections</div><div class="conn-list">';
-      n.conn.forEach(c=>{const t=N.find(x=>x.id===c);if(t)h+='<span class="conn-tag" onclick="selectNode(\''+c+'\')">'+t.l+'</span>';});
-      h+='</div></div>';
+  if(!dtb||!n)return;
+  try{
+    if(tab==='overview'){
+      let h='';
+      if(n.desc)h+='<div class="os"><div class="ol">Description</div><div class="otx">'+n.desc+'</div></div>';
+      if(n.conn&&n.conn.length){
+        h+='<div class="os"><div class="ol">Connections</div><div class="conn-list">';
+        n.conn.forEach(c=>{const t=N.find(x=>x.id===c);if(t)h+='<span class="conn-tag" onclick="selectNode(\''+c+'\')">'+t.l+'</span>';});
+        h+='</div></div>';
+      }
+      if(!h)h='<div class="otx" style="padding:20px;color:var(--t3)">No description available</div>';
+      dtb.innerHTML=h;
+    } else if(tab==='code'&&n.code){
+      dtb.innerHTML='<div class="cblk"><div class="cbh"><span class="cbf">'+(n.cf||n.id)+'</span><span class="cbl">'+(n.cl||'Swift')+'</span></div><div class="cbd">'+n.code+'</div></div>';
+    } else if(tab==='guide'&&n.guide){
+      dtb.innerHTML=n.guide;
+    } else {
+      dtb.innerHTML='<div class="otx" style="padding:20px;color:var(--t3)">No content available</div>';
     }
-    if(n.files&&n.files.length){
-      h+='<div class="os"><div class="ol">Files</div><div class="conn-list">';
-      n.files.forEach(f=>{h+='<a class="conn-tag" href="'+GH+f+'" target="_blank" style="text-decoration:none">'+f+'</a>';});
-      h+='</div></div>';
-    }
-    dtb.innerHTML=h;
-  } else if(tab==='code'&&n.code){
-    dtb.innerHTML='<div class="cblk"><div class="cbh"><span class="cbf">'+(n.cf||n.id)+'</span><span class="cbl">'+(n.cl||'Swift')+'</span></div><div class="cbd">'+n.code+'</div></div>';
-  } else if(tab==='guide'&&n.guide){
-    dtb.innerHTML=n.guide;
-  } else {
-    dtb.innerHTML='<div class="otx" style="padding:20px;color:var(--t3)">No content available</div>';
+  }catch(e){
+    dtb.innerHTML='<div class="otx" style="padding:20px;color:var(--t3)">Error loading content</div>';
   }
 }
 function selectNode(id){
