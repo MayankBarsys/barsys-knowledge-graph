@@ -71,11 +71,6 @@ opacity:0;pointer-events:none;transition:all .3s}
 color:var(--tx);font-family:'Plus Jakarta Sans';font-size:18px;font-weight:300;letter-spacing:2px;
 padding:12px 0;outline:none;text-align:center}
 .sinp::placeholder{color:var(--t3)}
-.sres{width:400px;max-width:80vw;max-height:40vh;overflow-y:auto;margin-top:8px}
-.sr{padding:10px 0;cursor:pointer;border-bottom:0.5px solid var(--bd);transition:all .2s;font-family:'Plus Jakarta Sans';font-weight:300}
-.sr:hover{padding-left:12px;color:var(--ac)}
-.sr-name{font-size:13px;letter-spacing:1px}
-.sr-cat{font-family:'JetBrains Mono';font-size:8px;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase}
 
 /* Detail Panel */
 #dp{position:fixed;top:40px;right:0;width:480px;height:calc(100vh - 40px);
@@ -201,10 +196,43 @@ border:0.5px solid var(--bd);border-radius:2px;cursor:pointer;transition:all .2s
 letter-spacing:1px;text-align:center}
 
 
-/* ── Intelligent Search ─────────────────────────────── */
-#sov{padding-top:14vh}
-.s-wrap{position:relative;display:flex;align-items:center;width:520px;max-width:88vw;
-  border-bottom:0.5px solid var(--bd);gap:10px}
+/* ── Search redesign ─────────────────────────────── */
+#sov{padding-top:7vh;align-items:flex-start;justify-content:center}
+.s-card{width:580px;max-width:92vw;background:var(--bg);border:0.5px solid var(--bd);border-radius:6px;overflow:hidden;transition:width .38s cubic-bezier(.16,1,.3,1);box-shadow:0 24px 80px rgba(0,0,0,.5)}
+.s-card.s-exp{width:min(980px,93vw)}
+.s-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:0.5px solid var(--bd)}
+.s-body{display:flex;overflow:hidden}
+.s-res{width:100%;max-height:62vh;overflow-y:auto;transition:width .38s cubic-bezier(.16,1,.3,1);flex-shrink:0}
+.s-card.s-exp .s-res{width:270px}
+.s-det{flex:1;min-width:0;border-left:0.5px solid var(--bd);max-height:62vh;overflow-y:auto;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .2s .2s}
+.s-card.s-exp .s-det{opacity:1;pointer-events:all}
+.s-esc{background:none;border:0.5px solid var(--bd);color:var(--t3);font-family:'JetBrains Mono';font-size:7px;letter-spacing:1px;padding:5px 8px;cursor:pointer;border-radius:2px;transition:all .2s;flex-shrink:0}
+.s-esc:hover{border-color:var(--t2);color:var(--t2)}
+.s-hint-empty{padding:32px 20px;text-align:center;font-family:'JetBrains Mono';font-size:9px;color:var(--t3);letter-spacing:1px;line-height:2}
+/* Result items in narrow col */
+.sr.sr-sel{background:color-mix(in srgb,var(--ac) 8%,transparent);border-color:color-mix(in srgb,var(--ac) 30%,transparent);padding-left:16px}
+/* Detail pane inside search */
+.sd-head{padding:16px 18px 0;flex-shrink:0}
+.sd-back{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono';font-size:7px;letter-spacing:1.5px;color:var(--t3);background:none;border:none;cursor:pointer;padding:0;margin-bottom:14px;transition:color .2s;text-transform:uppercase}
+.sd-back:hover{color:var(--ac)}
+.sd-cat-row{font-family:'JetBrains Mono';font-size:7px;letter-spacing:2px;color:var(--t3);text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.sd-title{font-size:16px;font-weight:300;letter-spacing:3px;text-transform:uppercase;color:var(--ac);line-height:1.3}
+.sd-id{font-family:'JetBrains Mono';font-size:7.5px;color:var(--t3);margin-top:4px;letter-spacing:.5px}
+.sd-tabs{display:flex;padding:0 18px;border-bottom:0.5px solid var(--bd);margin-top:14px;flex-shrink:0}
+.sd-tab{font-family:'JetBrains Mono';font-size:7.5px;padding:8px 10px;cursor:pointer;color:var(--t3);border:none;border-bottom:1.5px solid transparent;background:none;letter-spacing:1.5px;text-transform:uppercase;transition:all .2s}
+.sd-tab:hover{color:var(--t2)}.sd-tab.on{color:var(--ac);border-bottom-color:var(--ac)}
+.sd-body{flex:1;overflow-y:auto;padding:16px 18px}
+.sd-footer{padding:12px 18px 16px;border-top:0.5px solid var(--bd);flex-shrink:0;margin-top:auto}
+.sd-view{width:100%;background:none;border:0.5px solid var(--ac);color:var(--ac);padding:9px 16px;font-family:'JetBrains Mono';font-size:8px;letter-spacing:1.5px;cursor:pointer;border-radius:2px;transition:all .2s;text-transform:uppercase}
+.sd-view:hover{background:var(--ac);color:var(--bg)}
+.sd-conn-wrap{margin-top:16px}
+.sd-conn-lbl{font-family:'JetBrains Mono';font-size:7px;letter-spacing:2px;color:var(--t3);text-transform:uppercase;margin-bottom:8px;padding-bottom:4px;border-bottom:0.5px solid var(--bd)}
+.sd-conn-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.sd-chip{font-family:'JetBrains Mono';font-size:7.5px;padding:3px 8px;border-radius:2px;border:0.5px solid var(--bd);cursor:pointer;transition:all .2s;letter-spacing:.5px}
+.sd-chip:hover{border-color:var(--ac);color:var(--ac)}
+/* Node ref spans in AI answer — open detail instead of closing search */
+.kg-node-ref{cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-weight:400}
+.kg-node-ref:hover{opacity:.8}
 .s-icon{font-size:22px;color:var(--t3);flex-shrink:0;margin-bottom:2px}
 .sinp{flex:1;width:auto;max-width:none;border:none;border-bottom:none;
   padding:12px 0;font-size:16px}
@@ -212,7 +240,6 @@ letter-spacing:1px;text-align:center}
   padding:2px 7px;border-radius:2px;border:0.5px solid var(--t3);color:var(--t3);
   flex-shrink:0;transition:all .3s;white-space:nowrap}
 .s-mode.qa{border-color:var(--ac);color:var(--ac)}
-.sres{width:520px;max-width:88vw;max-height:52vh;overflow-y:auto;margin-top:10px}
 
 /* Q&A Answer panel */
 .qa-answer{padding:16px 18px;background:rgba(196,162,101,0.04);
@@ -304,13 +331,19 @@ letter-spacing:1px;text-align:center}
 </div>
 
 <div id="sov" onclick="if(event.target===this)toggleSearch()">
-<div class="s-wrap">
-  <div class="s-icon">⌕</div>
-  <input class="sinp" id="si" placeholder="Ask anything — &ldquo;how are mixlists populated?&rdquo; or search a node..." oninput="doSearch(this.value)" autocomplete="off" spellcheck="false">
-  <div class="s-mode" id="s-mode-badge"></div>
-  <div id="kg-key-badge" class="kg-key-status unset" onclick="showKeyPrompt()" title="Click to set Anthropic API key">NO KEY</div>
+<div class="s-card" id="s-card">
+  <div class="s-head">
+    <span class="s-icon">⌕</span>
+    <input class="sinp" id="si" placeholder="Ask anything or search a node…" oninput="doSearch(this.value)" autocomplete="off" spellcheck="false">
+    <div class="s-mode" id="s-mode-badge"></div>
+    <div id="kg-key-badge" class="kg-key-status unset" onclick="showKeyPrompt()" title="Set Anthropic API key">NO KEY</div>
+    <button class="s-esc" onclick="toggleSearch()">ESC</button>
+  </div>
+  <div class="s-body">
+    <div class="s-res" id="srl"></div>
+    <div class="s-det" id="s-det"><div id="s-det-i"></div></div>
+  </div>
 </div>
-<div class="sres" id="srl"></div>
 </div>
 
 <div id="dp">
@@ -2946,13 +2979,15 @@ function selectNode(id){
 function closePanel(){document.getElementById('dp').classList.remove('on');sel=null;}
 function toggleSearch(){
   clearTimeout(_searchTimer);_searchReqId++;
-  const sov=document.getElementById('sov');sov.classList.toggle('on');
-  if(sov.classList.contains('on')){
+  const sov=document.getElementById('sov');
+  const wasOn=sov.classList.contains('on');
+  sov.classList.toggle('on');
+  if(!wasOn){
     const inp=document.getElementById('si');
     inp.value='';inp.focus();
-    document.getElementById('srl').innerHTML='';
-    const mb=document.getElementById('s-mode-badge');
-    mb.textContent='';mb.className='s-mode';
+    document.getElementById('srl').innerHTML='<div class="s-hint-empty">Type to search nodes &nbsp;·&nbsp; Ask a question for AI answers<br><span style="opacity:.5">↑↓ navigate &nbsp;·&nbsp; Enter select &nbsp;·&nbsp; Esc close</span></div>';
+    document.getElementById('s-mode-badge').textContent='';document.getElementById('s-mode-badge').className='s-mode';
+    closeSearchDetail();
   }
 }
 
@@ -3074,6 +3109,49 @@ function buildAnswer(q,nodes,words){return null;} // replaced by AI
 
 let KG_API_KEY=sessionStorage.getItem('kg_api_key')||'';
 let _searchTimer=null,_searchReqId=0;
+let _sdId=null;
+function openSearchDetail(id){
+  const n=N.find(x=>x&&x.id===id);if(!n)return;
+  _sdId=id;
+  document.querySelectorAll('#srl .sr').forEach(el=>el.classList.remove('sr-sel'));
+  const sel=document.querySelector('#srl .sr[data-id="'+id+'"]');
+  if(sel)sel.classList.add('sr-sel');
+  document.getElementById('s-card').classList.add('s-exp');
+  renderSD(n,'desc');
+}
+function closeSearchDetail(){
+  _sdId=null;
+  const card=document.getElementById('s-card');if(card)card.classList.remove('s-exp');
+  document.querySelectorAll('#srl .sr').forEach(el=>el.classList.remove('sr-sel'));
+}
+function renderSD(n,tab){
+  const col=nodeColor(n);
+  let body='';
+  if(tab==='desc'){
+    body='<div class="otx" style="font-size:11px;line-height:1.8;font-weight:300">'+n.desc+'</div>';
+    if(n.conn&&n.conn.length){
+      const chips=n.conn.map(cid=>{const cn=N.find(x=>x&&x.id===cid);if(!cn)return'';const cc=nodeColor(cn);return'<span class="sd-chip" style="border-color:'+cc+'40;color:'+cc+'" onclick="openSearchDetail(\''+cid+'\')">'+cn.l+'</span>';}).filter(Boolean).join('');
+      if(chips)body+='<div class="sd-conn-wrap"><div class="sd-conn-lbl">Connects to</div><div class="sd-conn-chips">'+chips+'</div></div>';
+    }
+  } else if(tab==='code'){
+    body=n.code?'<div class="cblk"><div class="cbh"><span class="cbf">'+n.id+'</span><span class="cbl">'+(n.cl||'')+'</span></div><div class="cbd">'+n.code+'</div></div>':'<div class="s-hint-empty">No code sample.</div>';
+  } else if(tab==='guide'){
+    body=n.guide||'<div class="s-hint-empty">No guide available.</div>';
+  }
+  const tabs=['desc','code','guide'].filter(t=>t==='desc'||(t==='code'&&n.code)||(t==='guide'&&n.guide));
+  const tabHtml=tabs.map(t=>'<button class="sd-tab'+(t===tab?' on':'')+'" onclick="renderSD(N.find(x=>x&&x.id===\''+n.id+'\'),\''+t+'\')">'+{desc:'Overview',code:'Code',guide:'Guide'}[t]+'</button>').join('');
+  document.getElementById('s-det-i').innerHTML=
+    '<div class="sd-head">'
+    +'<button class="sd-back" onclick="closeSearchDetail()">← results</button>'
+    +'<div class="sd-cat-row"><span style="width:6px;height:6px;border-radius:50%;background:'+col+';display:inline-block"></span>'+(CAT_LABELS[n.cat]||n.cat)+'<span style="opacity:.4;font-size:6px">'+( n.cl||'')+'</span></div>'
+    +'<div class="sd-title">'+n.l+'</div>'
+    +'<div class="sd-id">'+n.id+'</div>'
+    +'</div>'
+    +'<div class="sd-tabs">'+tabHtml+'</div>'
+    +'<div class="sd-body">'+body+'</div>'
+    +'<div class="sd-footer"><button class="sd-view" onclick="viewOnGraph(\''+n.id+'\')">View on graph →</button></div>';
+}
+function viewOnGraph(id){toggleSearch();selectNode(id);}
 
 function saveKey(){
   const inp=document.getElementById('kg-key-inp');
@@ -3179,7 +3257,7 @@ function renderAIAnswer(text,words,srl){
         const node=N.find(n=>n&&n.id===id);
         if(!node||!node.l)return '<code>'+id+'</code>';
         const col=nodeColor(node);
-        return '<span class="kg-node-ref" onclick="selectNode(\''+id+'\');toggleSearch();" style="color:'+col+'" title="Open node: '+node.l+'">'+node.l+'</span>';
+        return '<span class="kg-node-ref" onclick="openSearchDetail(\''+id+'\')" style="color:'+col+'" title="View node: '+node.l+'">'+node.l+'</span>';
       })
       .replace(/^#{1,3}\s*/gm,'')
       .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
@@ -3203,7 +3281,7 @@ function renderAIAnswer(text,words,srl){
         const connHtml=conns.length
           ?'<div class="sr-conn">'+conns.map(c=>'<span class="sr-conn-dot"></span>'+c).join(' ')+'</div>'
           :'';
-        return '<div class="sr" onclick="selectNode(\''+n.id+'\');toggleSearch();" title="Click to focus on graph">'
+        return '<div class="sr" data-id="'+n.id+'" onclick="openSearchDetail(\''+n.id+'\')" title="Click to view node">'
           +'<div class="sr-top">'
           +'<div class="sr-dot" style="background:'+col+'"></div>'
           +'<div class="sr-name">'+n.l+'</div>'
@@ -3283,7 +3361,7 @@ async function doSearch(q){
     const matches=ranked.length?ranked:N.filter(n=>n.l.toLowerCase().includes(ql)||n.id.toLowerCase().includes(ql)||(n.desc&&n.desc.toLowerCase().includes(ql)));
     srl.innerHTML=matches.slice(0,12).map(n=>{
       const excerpt=getExcerpt(n,words.length?words:[ql]);
-      return '<div class="sr" onclick="selectNode(\''+n.id+'\');toggleSearch();">'
+      return '<div class="sr" data-id="'+n.id+'" onclick="openSearchDetail(\''+n.id+'\')">'
         +'<div class="sr-top">'
         +'<div class="sr-dot" style="background:'+nodeColor(n)+'"></div>'
         +'<div class="sr-name">'+n.l+'</div>'
@@ -3322,13 +3400,29 @@ function toggleTheme(){
 }
 addEventListener('keydown',e=>{
   if(e.key==='Enter'&&document.getElementById('sov').classList.contains('on')){
-    const first=document.querySelector('#srl .sr');
+    const first=document.querySelector('#srl .sr:not(.sr-sel)')||document.querySelector('#srl .sr');
     if(first)first.click();
     return;
   }
   if(e.key==='Escape'){
-    if(document.getElementById('sov').classList.contains('on'))toggleSearch();
-    else closePanel();
+    if(document.getElementById('sov').classList.contains('on')){
+      if(_sdId){closeSearchDetail();}else{toggleSearch();}
+    } else closePanel();
+    return;
+  }
+  if(e.key==='ArrowDown'&&document.getElementById('sov').classList.contains('on')){
+    e.preventDefault();
+    const items=[...document.querySelectorAll('#srl .sr')];
+    const idx=items.findIndex(el=>el.classList.contains('sr-sel'));
+    const next=items[idx+1]||items[0];if(next)next.click();
+    return;
+  }
+  if(e.key==='ArrowUp'&&document.getElementById('sov').classList.contains('on')){
+    e.preventDefault();
+    const items=[...document.querySelectorAll('#srl .sr')];
+    const idx=items.findIndex(el=>el.classList.contains('sr-sel'));
+    const prev=items[idx-1]||items[items.length-1];if(prev)prev.click();
+    return;
   }
   if(e.key==='/'&&!document.getElementById('sov').classList.contains('on')){e.preventDefault();toggleSearch();}
   if(e.key==='1')switchView('graph');
