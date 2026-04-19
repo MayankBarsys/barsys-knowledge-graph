@@ -878,7 +878,7 @@ Category { id, name, icon_url }
 Product  { id, category_id, name, brand,
            barcode, abv, image_url }`,
  conn:['defteros','mybar-api','scanner-api','recipe-catalog-api'],
- guide:`<div class="gs"><div class="gt">Add new product</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">POST to admin endpoint with category_id + barcode</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Scanner detection will match via barcode lookup</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Delta sync pushes to iOS SQLite on next app open</span></div></div></div>`},
+ guide:`<div class="gs"><div class="gt">Wire new ingredient type end-to-end</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">INSERT into <code>categories</code> table with type + parent_category_id</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Add products under that category — scanner matches via category lookup</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Delta sync pushes updated catalog to iOS SQLite on next app open</span></div></div></div>`},
 
 {id:'home-cards-api',l:'Home Cards API',cat:'backend',sz:4,rel:.8,
  desc:'GET /api/v1/home-cards — proxies to Barbot ML service for personalized home page feed cards. Cards are assembled by Barbot based on user taste profile, recent activity, trending recipes. Handler: home_cards_handler.go, backed by BarbotHTTPRepository.',
