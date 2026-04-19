@@ -2091,7 +2091,7 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  guide:`<div class="gs"><div class="gt">Add a new tab to Android home</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Create new Fragment class and add to <code>ViewPagerAdapter</code> in HomeActivity</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Add tab icon and label to bottom navigation layout</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">If tab needs data, add API call to the initial sync block alongside existing calls</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Catalog sync only runs if Room DB has fewer than 10 recipes — force fresh data by clearing DB</span></div></div></div>`}
 
 ,{id:'android-auth-flow',l:'Android Auth Flow',cat:'android',sz:6,rel:1,cl:'Kotlin',
- desc:'Three-screen auth sequence: LoginActivityNew (email/password + Google OAuth), SignupActivityNew (email + ToS acceptance), ConfirmCodeActivity (OTP verification). All screens validate through ResponseInterface callbacks to auth-api. DOBActivity enforces age verification after signup. Tokens stored in AppPreferences.',
+ desc:'Three-screen auth sequence: Signup.kt (host Activity), Login.kt fragment (email/password), Register.kt fragment (email + ToS acceptance). No ConfirmCodeActivity (OTP verification). All screens validate through ResponseInterface callbacks to auth-api. DOBActivity enforces age verification after signup. Tokens stored in AppPreferences.',
  code:`<span class="cc">// LoginActivityNew.kt</span>
 nextTv.setOnClickListener {
   <span class="ck">val</span> email = emailEditText.text.toString()
@@ -2376,6 +2376,86 @@ startActivityForResult(
   Intent(<span class="ck">this</span>, SelectQuantityActivity::<span class="ck">class</span>.java).putExtra(<span class="cs">"item"</span>, selectedItem), <span class="cn">101</span>)`,
  conn:['custom-recipe-creation','ingredients-catalog','products-api','recipes-api','db-recipes-schema','media-upload','android-local-db'],
  guide:`<div class="gs"><div class="gt">Save a custom recipe on Android</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Select spirits in CreateFragment → opens SelectQuantityActivity per ingredient (requestCode 101)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">After quantity set, navigate to SaveDrinkActivity with ingredient list as Serializable extra</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">SaveDrinkActivity POSTs to <code>recipes-api</code> and inserts <code>UserRecipeModel</code> into Room DB</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Custom recipes require a Barsys 360 device to craft — Shaker Pro and Coaster 2.0 do not support the pour sequence</span></div></div></div>`},
+
+{id:'android-barbot-ai',l:'Android BarBot AI',cat:'android',sz:7,rel:1,cl:'Kotlin',
+ desc:'AiBarBot.kt fragment is the full BarBot AI chat interface on Android. Uses bond_base_url (ci.bond.barsys.com/api/) — same endpoint as iOS. Renders chat history via AiChatAdapter with ChatItem, ChatRecipe, ChatMixlist models. Supports ActionCard selection (craft/chat/device actions), image upload via AiImageSelector, and chat session history via ChatHistoryAdapter. MetaDevice sends connected BLE device context with each message. Mirrors iOS BarBot feature parity.',
+ code:`<span class="cc">// AiBarBot.kt fragment</span>
+<span class="ct">bond_base_url</span> = <span class="cs">"https://ci.bond.barsys.com/api/"</span>
+
+<span class="cc">// Key models</span>
+ChatBody { Input, Metadata, UploadImage? }
+Metadata { MetaDevice(name, type) }
+ActionCard { type: chat|craft|device }
+ChatSession { session_id, messages[] }`,
+ conn:['chat-api','bond-ai','android-home-main','android-networking-retrofit','android-ble-service','android-pour-flow','android-recipe-model'],
+ guide:`<div class="gs"><div class="gt">Send a BarBot message on Android</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">User types in AiBarBot fragment → ChatBody assembled with Input text + Metadata (connected device name/type)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">POST to ci.bond.barsys.com/api/ — Bond returns message with optional ActionCards</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">ActionCard type "craft" passes recipe to PouringActivity via BLE; type "chat" continues conversation</span></div><div class="gstep"><span class="gsn">4</span><span class="gst">ChatHistoryAdapter loads past sessions from ChatSession list on fragment open</span></div></div></div>`},
+
+{id:'android-control-center',l:'Android Control Center',cat:'android',sz:5,rel:.8,cl:'Kotlin',
+ desc:'ControlCenter.kt fragment is the device management hub reached after pairing. Adapts its menu items based on connected device type: Coaster/Shaker shows [Disconnect, System Reset, Tutorial]; Barsys 360 shows [Station Clean, Disconnect, System Reset, Tutorial, Station Menu]. Uses is360DeviceName/isCoasterDeviceName helpers. Station Clean navigates to StationFlushClean; Station Menu navigates to StationMenu. Disconnect triggers commonDialog confirmation.',
+ code:`<span class="cc">// Coaster/Shaker options</span>
+Disconnect | System Reset | Tutorial
+
+<span class="cc">// Barsys 360 options</span>
+Station Clean | Disconnect |
+System Reset | Tutorial | Station Menu
+
+<span class="ck">when</span>(device) {
+  is360    → show stationClean + stationMenu
+  isCoaster → hide station options
+}`,
+ conn:['android-ble-service','android-home-main','android-ble-gatt','android-pour-flow','station-cleaning'],
+ guide:`<div class="gs"><div class="gt">Access device control on Android</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">After BLE pairing, Dashboard navigates to ControlCenter fragment</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">ControlCenter reads device name via BLEDName — is360DeviceName() determines which menu to show</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Tap Station Menu → navigate to StationMenu fragment to assign ingredients to slots</span></div><div class="gstep"><span class="gsn">4</span><span class="gst">Tap Station Clean → navigate to StationFlushClean to initiate perishable flush sequence</span></div></div></div>`},
+
+{id:'android-station-menu',l:'Android Station Menu',cat:'android',sz:5,rel:.85,cl:'Kotlin',
+ desc:'StationMenu.kt fragment manages ingredient-to-slot assignment for the Barsys 360 device. Uses StationIngredientsAdapter and StationTypeAdapter to display and edit each slot (A–F). Reads current station config from device via BLE; writes changes back. Detects perishable ingredients and prompts ProceedToCleanStations dialog before slot change. Shares slot-mapping logic with StationFlushClean via mapStationsToList and completeStationIngredientsForPerishableIngredients utilities.',
+ code:`<span class="cc">// Station slot assignment</span>
+StationIngredientsItem {
+  slot: String, <span class="cc">// A–F</span>
+  ingredient: BasicIngredient,
+  isPerishable: Boolean
+}
+<span class="cc">// BLE round-trip to update slot</span>
+sendMessage(slotConfig) → BLservice → GATT`,
+ conn:['android-ble-gatt','android-control-center','android-ble-service','station-slot-api','devices-api','android-home-main'],
+ guide:`<div class="gs"><div class="gt">Assign an ingredient to a station slot (Android)</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Open StationMenu from ControlCenter → reads current slot state from BLE device</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Tap a slot → StationTypeAdapter shows ingredient picker from Room DB catalog</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">If slot had a perishable ingredient, ProceedToCleanStations dialog prompts flush before reassignment</span></div><div class="gstep"><span class="gsn">4</span><span class="gst">Confirmed change is sent via BLE write and synced to backend via station-slot-api</span></div></div></div>`},
+
+{id:'android-station-flush-clean',l:'Android Station Flush/Clean',cat:'android',sz:5,rel:.85,cl:'Kotlin',
+ desc:'StationFlushClean.kt fragment runs the step-by-step tubing flush procedure on Android. Uses OTACommands, sendMessage, and setReadCallback from the OTA module to send BLE flush instructions and read machine responses. Displays slot-by-slot progress using StationIngredientsAdapter. Handles perishable ingredient detection via isStationsContainsPerishableItems. Reads machine instruction progress via ReadMachineInstructions callback with timestamp-based step gating.',
+ code:`<span class="cc">// BLE flush sequence</span>
+setReadCallback { instruction →
+  ReadMachineInstructions(instruction)
+}
+sendMessage(OTACommands.flush(slot))
+<span class="cc">// Step gating</span>
+getMillisFromTimeStampInUTC() → runHandler()`,
+ conn:['android-ble-gatt','android-control-center','android-station-menu','android-ble-service','station-cleaning','ble-opcodes'],
+ guide:`<div class="gs"><div class="gt">Run station flush/clean on Android</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Triggered from ControlCenter "Station Clean" or after perishable slot change in StationMenu</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">StationFlushClean reads active slots and builds flush sequence for perishable ingredients</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Each slot: sendMessage(OTACommands.flush) → setReadCallback awaits machine instruction confirmation</span></div><div class="gstep"><span class="gsn">4</span><span class="gst">Timestamp-gated steps prevent next command until machine confirms current step complete</span></div></div></div>`},
+
+{id:'android-connect-device',l:'Android Connect Device',cat:'android',sz:4,rel:.75,cl:'Kotlin',
+ desc:'ConnectDevice.kt fragment is the pre-pairing landing screen shown when no Barsys device is connected. Displays user profile info via profileInfo() and device connection status via updateConnectDevice(). Shows the Bond AI bottom bar (bottomBarBot) while unpaired. Navigates to PairDevice activity when user initiates pairing. Also handles favourite recipe preloading (GetFavouriteRecipe) and explore data (ExploreRecipeDataModel) so content is ready immediately after pairing.',
+ code:`<span class="cc">// ConnectDevice.kt — no device connected state</span>
+<span class="ck">override fun</span> init() {
+  updateConnectDevice()   <span class="cc">// check BLE state</span>
+  profileInfo()           <span class="cc">// load user info</span>
+  actionPerformed()       <span class="cc">// bind CTA buttons</span>
+  binding.bottomBarBot    <span class="cc">// show Bond AI bar</span>
+    .llBottomBarBot.unHideView()
+}`,
+ conn:['android-ble-service','android-home-main','android-barbot-ai','android-auth-flow','android-app-preferences'],
+ guide:`<div class="gs"><div class="gt">Connect first Barsys device on Android</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">On Dashboard launch with no paired device, ConnectDevice fragment is shown as default tab</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Fragment preloads favourites and explore data via Retrofit in background coroutines</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">User taps "Connect Device" → navigates to PairDevice activity which starts BLE scan</span></div><div class="gstep"><span class="gsn">4</span><span class="gst">On successful pairing, Dashboard replaces ConnectDevice with ControlCenter fragment</span></div></div></div>`},
+
+{id:'android-favourites',l:'Android Favourites',cat:'android',sz:4,rel:.75,cl:'Kotlin',
+ desc:'Favourites.kt fragment shows two tabs: curated/Barsys recipes (CuratedRecipesAdapter over RecipeEntity from Room DB) and My Drinks (MyDrinksAdapter over custom user recipes fetched from API). Supports delete/edit actions via DeleteEditRecipe callback. RecipeSelection navigates to RecipeDetail on tap. Fetches curated favourites via GET requests and caches in Room. Mirrors iOS FavouritesRecipesAndDrinksViewController.',
+ code:`<span class="ct">Favourites</span> : BaseFragment,
+  DeleteEditRecipe, RecipeSelection
+
+<span class="cc">// Two data sources</span>
+curatedRecipes: List&lt;RecipesWithIngredients&gt;
+  → Room DB (RecipeEntity)
+myDrinksRecipes: List&lt;GetRecipesData&gt;
+  → API fetch → MyDrinksAdapter`,
+ conn:['android-recipe-details','android-local-db','android-recipe-model','favorites-drinks','recipes-api','android-home-main'],
+ guide:`<div class="gs"><div class="gt">View favourites on Android</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Favourites fragment loads via Dashboard tab — tab switch triggers lifecycle init</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Curated tab: queries Room DB for RecipesWithIngredients using JOIN on favourite flag</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">My Drinks tab: fetches user custom recipes from API via Retrofit and populates MyDrinksAdapter</span></div><div class="gstep"><span class="gsn">4</span><span class="gst">Tap any recipe → RecipeSelection callback navigates to RecipeDetail fragment</span></div></div></div>`},
 
 {id:'user-device-links-api',l:'User–Device Links',cat:'backend',sz:5,rel:.8,cl:'Go',
  desc:'Links a user\'s Ory identity to one or more Barsys device numbers (migration 023: user_device_links table). POST /my/user-device-links registers a device under the authenticated user. GET returns all linked devices. DELETE /my/user-device-links/:deviceNumber removes a link. UNIQUE constraint on (user_id, device_number) prevents duplicate registrations. Enables the app to load the correct device config on login without re-pairing.',
