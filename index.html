@@ -2073,6 +2073,310 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  conn:['ota-firmware-update','android-ble-service','fcm-push-notifications'],
  guide:`<div class="gs"><div class="gt">Add a new notification channel</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Choose priority: <code>IMPORTANCE_HIGH</code> for user-alerting, <code>IMPORTANCE_LOW</code> for silent background ops</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Create channel in <code>Application.onCreate()</code> — channels persist device-wide after first creation</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Use a unique <code>NOTIFICATION_CHANNEL_ID</code> string — reusing an existing ID silently ignores any changes</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Channel importance cannot be changed after creation — the user controls it in device Settings</span></div></div></div>`}
 
+// ── Android — Core Navigation & Auth ────────────────────────────
+,{id:'android-home-main',l:'Android Home',cat:'android',sz:7,rel:1,cl:'Kotlin',
+ desc:'HomeActivity is the main navigation hub with 5-tab ViewPager (Craft, Create, Explore, MyBar, Search). On first launch downloads all catalog data via Retrofit into Room DB: recipes, playlists, mixologists, blog posts, and explore videos. Manages BluetoothService binding for Coaster 2.0 discovery.',
+ code:`<span class="ck">if</span> (AppDatabase.getDatabase(<span class="ck">this</span>)?.recipeDao()
+    ?.getAllLimit(<span class="cn">10</span>)?.size != <span class="cn">0</span>) {
+  setViewPager(); setTab(<span class="cn">3</span>)
+} <span class="ck">else</span> {
+  isFromOpen = <span class="ck">true</span>; versionCount = <span class="cn">17</span>
+  getExploreVideos(<span class="ck">this</span>, GetExploreVideos)
+  getBlogs(<span class="ck">this</span>, GetBlogs)
+  getRecipeApicall(<span class="ck">this</span>, RecipeApiCall)
+  getAllplaylist(<span class="ck">this</span>, PlayListApiCall)
+  getMixologists(<span class="ck">this</span>, UserMixlogists)
+}`,
+ conn:['android-recipe-explore','android-craft-ready-to-pour','android-mybar-inventory','android-local-db','android-ble-service','android-networking-retrofit','home-cards-api'],
+ guide:`<div class="gs"><div class="gt">Add a new tab to Android home</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Create new Fragment class and add to <code>ViewPagerAdapter</code> in HomeActivity</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Add tab icon and label to bottom navigation layout</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">If tab needs data, add API call to the initial sync block alongside existing calls</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Catalog sync only runs if Room DB has fewer than 10 recipes — force fresh data by clearing DB</span></div></div></div>`}
+
+,{id:'android-auth-flow',l:'Android Auth Flow',cat:'android',sz:6,rel:1,cl:'Kotlin',
+ desc:'Three-screen auth sequence: LoginActivityNew (email/password + Google OAuth), SignupActivityNew (email + ToS acceptance), ConfirmCodeActivity (OTP verification). All screens validate through ResponseInterface callbacks to auth-api. DOBActivity enforces age verification after signup. Tokens stored in AppPreferences.',
+ code:`<span class="cc">// LoginActivityNew.kt</span>
+nextTv.setOnClickListener {
+  <span class="ck">val</span> email = emailEditText.text.toString()
+  <span class="ck">if</span> (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+    Commons.showMessage(<span class="ck">this</span>, <span class="cs">"Please enter valid email address"</span>)
+    <span class="ck">return</span>@setOnClickListener
+  }
+  loginApiCall(<span class="ck">this</span>, email, passwordEditText.text.toString(), LoginApiCall)
+}
+<span class="cc">// ConfirmCodeActivity.kt — OTP validation</span>
+<span class="ck">val</span> responseListener = <span class="ck">object</span> : ResponseInterface {
+  <span class="ck">override fun</span> onResponse(response: JsonElement, tag: String) {
+    startActivity(Intent(<span class="ck">this</span>@ConfirmCodeActivity, HomeActivity::<span class="ck">class</span>.java))
+  }
+}`,
+ conn:['auth-flow','auth-api','jwt-middleware','ory','android-app-preferences','android-home-main'],
+ guide:`<div class="gs"><div class="gt">Debug Android login failures</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Check <code>ResponseInterface.onError</code> callback in LoginActivityNew for API error code</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Verify token is stored in <code>AppPreferences</code> after successful <code>ConfirmCodeActivity</code> OTP</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Auth base URL is <code>api.barsys.ai/api/</code> via Retrofit singleton in ApiClient.kt</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">DOBActivity age gate runs after signup — app will block users under legal drinking age</span></div></div></div>`}
+
+,{id:'android-networking-retrofit',l:'Android API Client',cat:'android',sz:5,rel:.95,cl:'Kotlin',
+ desc:'Retrofit singleton in ApiClient.kt pointing to https://api.barsys.ai/api/ with 60s read/connect timeouts and GSON serialization. BarsysInterfaces defines all API endpoints. All API calls follow ResponseInterface callback pattern with onResponse/onError handlers passed from calling Activity.',
+ code:`<span class="ck">object</span> ApiClient {
+  <span class="ck">private const val</span> BASE_URL = <span class="cs">"https://api.barsys.ai/api/"</span>
+  <span class="ck">val</span> client: Retrofit?
+    <span class="ck">get</span>() {
+      <span class="ck">if</span> (retrofit == <span class="ck">null</span>) {
+        <span class="ck">val</span> http = OkHttpClient.Builder()
+          .readTimeout(<span class="cn">60</span>, TimeUnit.SECONDS)
+          .connectTimeout(<span class="cn">60</span>, TimeUnit.SECONDS).build()
+        retrofit = Retrofit.Builder()
+          .baseUrl(BASE_URL)
+          .client(http)
+          .addConverterFactory(GsonConverterFactory.create())
+          .build()
+      }
+      <span class="ck">return</span> retrofit
+    }
+}`,
+ conn:['defteros','recipes-api','mybar-api','profile-api','auth-api','mixlists-api','analytics-api','delta-sync'],
+ guide:`<div class="gs"><div class="gt">Add a new Android API call</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add method to <code>BarsysInterfaces</code> interface with Retrofit annotations</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Create call via <code>ApiClient.client?.create(BarsysInterfaces::class.java)</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Pass <code>ResponseInterface</code> callback to handle <code>onResponse</code> and <code>onError</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">No SSL pinning on Android — unlike iOS which pins api-ng.barsys.com. Different base URL: api.barsys.ai vs ci.api-ng.barsys.com</span></div></div></div>`}
+
+,{id:'android-local-db',l:'Android Room DB',cat:'android',sz:6,rel:.95,cl:'Kotlin',
+ desc:'Room database singleton (AppDatabase.kt) managing 28 entity types: recipes, playlists, user inventory, ingredients, curated ingredient/mixer/garnish cross-references, mixologists, blog posts, and explore videos. Implements full DAO layer for all query operations. Serves as local cache after initial catalog sync from API.',
+ code:`<span class="cm">@Database</span>(entities = [RecipeModel::<span class="ck">class</span>,
+  CuratedIngredientsBaseModel::<span class="ck">class</span>, CuratedMixersBaseModel::<span class="ck">class</span>,
+  PlayListsTable::<span class="ck">class</span>, PlayListCategoryModel::<span class="ck">class</span>,
+  UserInventoryBaseModel::<span class="ck">class</span>, UserInventoryMixerModel::<span class="ck">class</span>,
+  UserRecipeModel::<span class="ck">class</span>, UserFavoritesModel::<span class="ck">class</span>,
+  MixersTable::<span class="ck">class</span>, IngredientsTable::<span class="ck">class</span>,
+  GlassModel::<span class="ck">class</span>, IceModel::<span class="ck">class</span> <span class="cc">/* + 15 more */</span>],
+  version = <span class="cn">1</span>)
+<span class="ck">abstract class</span> AppDatabase : RoomDatabase() {
+  <span class="ck">abstract fun</span> recipeDao(): RecipeDao?
+  <span class="ck">abstract fun</span> userInventoryBaseDao(): UserInventoryBaseDao
+  <span class="ck">abstract fun</span> userRecipeDao(): UserRecipeDao
+  <span class="ck">companion object</span> {
+    <span class="ck">fun</span> getDatabase(ctx: Context) = Room.databaseBuilder(ctx, AppDatabase::<span class="ck">class</span>.java, <span class="cs">"barsys_db"</span>).allowMainThreadQueries().build()
+  }
+}`,
+ conn:['local-db','sqlite-cache','db-recipes-schema','db-mybar-schema','db-mixlists-schema','delta-sync','android-recipe-model'],
+ guide:`<div class="gs"><div class="gt">Add a new Room entity</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Create entity class annotated with <code>@Entity(tableName = "...")</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Add abstract DAO to AppDatabase and include entity in <code>@Database(entities = [...])</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Increment database <code>version</code> and add <code>Migration</code> object — or use <code>fallbackToDestructiveMigration()</code> for dev</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">AppDatabase uses <code>allowMainThreadQueries()</code> — queries block UI thread. Migrate to coroutines/Executor for production</span></div></div></div>`}
+
+,{id:'android-recipe-model',l:'Android Recipe Model',cat:'android',sz:4,rel:.9,cl:'Kotlin',
+ desc:'RecipeModel.kt is a Parcelable Room entity mapping the "receipe" table (sic). Stores recipe id, name, description, image URL, foreign keys to glass/ice/video, mix technique, and published-by user. Embedded curated ingredient/mixer/garnish lists populated post-query via Config.getRecipe().',
+ code:`<span class="cm">@Entity</span>(tableName = <span class="cs">"receipe"</span>)
+<span class="ck">class</span> RecipeModel : Parcelable {
+  <span class="cm">@PrimaryKey</span> <span class="ck">var</span> id = <span class="cn">0</span>
+  <span class="cm">@ColumnInfo</span>(name = <span class="cs">"name"</span>)    <span class="ck">var</span> name: String? = <span class="ck">null</span>
+  <span class="cm">@ColumnInfo</span>(name = <span class="cs">"image"</span>)   <span class="ck">var</span> image: String? = <span class="ck">null</span>
+  <span class="cm">@ColumnInfo</span>(name = <span class="cs">"fkIngredientGlass"</span>) <span class="ck">var</span> fkIngredientGlass = <span class="cn">0</span>
+  <span class="cm">@ColumnInfo</span>(name = <span class="cs">"fkIngredientIce"</span>)   <span class="ck">var</span> fkIngredientIce = <span class="cn">0</span>
+  <span class="cm">@ColumnInfo</span>(name = <span class="cs">"mixTechnique"</span>)     <span class="ck">var</span> mixTechnique = <span class="cn">0</span>
+  <span class="cc">// Populated after query via Config.getRecipe()</span>
+  <span class="ck">var</span> curatedIngredientsBaseModels: List<CuratedIngredientsBaseModel>? = <span class="ck">null</span>
+  <span class="ck">var</span> curatedMixersBaseModels: List<CuratedMixersBaseModel>? = <span class="ck">null</span>
+}`,
+ conn:['recipe-model-ios','db-recipes-schema','recipes-api','crafting-session-api','android-local-db'],
+ guide:`<div class="gs"><div class="gt">Add a field to RecipeModel</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add <code>@ColumnInfo(name = "field_name") var field: Type? = null</code> to RecipeModel.kt</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Increment Room DB version and add migration — <code>ALTER TABLE receipe ADD COLUMN field_name TEXT</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Update Parcelable <code>writeToParcel</code> and constructor to include the new field</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Table name is "receipe" (typo in production schema) — do not rename or migrations will fail</span></div></div></div>`}
+
+// ── Android — Recipe & Discovery ──────────────────────────────────
+,{id:'android-recipe-explore',l:'Android Explore',cat:'android',sz:5,rel:.9,cl:'Kotlin',
+ desc:'ExploreFragment displays swipeable video carousel (ViewPager2) with explore videos, mixologist profile cards, brand showcases, and curated playlists. Features in-pager audio toggle, tap-to-favorite, and recipe drill-down. All data loaded from Room DB after initial HomeActivity sync.',
+ code:`<span class="ck">private lateinit var</span> videoViewPager: ViewPager2
+<span class="ck">private lateinit var</span> recyclerViewOne: RecyclerView
+<span class="ck">private var</span> isSoundOn = <span class="ck">true</span>
+<span class="ck">for</span> (k <span class="ck">in</span> <span class="cn">0</span> until playLists[i].recipes.size) {
+  <span class="ck">val</span> m = PlayListCategoryModel()
+  m.fkPlayList = playLists[i].playListId
+  m.fkRecipeDisp = playLists[i].recipes[k]
+  playListCategoryModels.add(m)
+}
+soundImg.setOnClickListener {
+  isSoundOn = !isSoundOn
+  videoAdapter.setSound(isSoundOn)
+}`,
+ conn:['recipe-browse','recipe-catalog-api','mixlists-api','video-playback','favorites-drinks','android-home-main','android-local-db'],
+ guide:`<div class="gs"><div class="gt">Add a new content section to Explore</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add API call in HomeActivity sync block and store results in a new Room entity/DAO</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Create RecyclerView adapter for the new content type</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Add horizontal RecyclerView section to ExploreFragment layout and wire adapter</span></div><div class="gstep hl"><span class="gsn">4</span><span class="gst">Data must be in Room DB before ExploreFragment loads — always add sync to HomeActivity, not the fragment</span></div></div></div>`}
+
+,{id:'android-recipe-details',l:'Android Recipe Detail',cat:'android',sz:4,rel:.85,cl:'Kotlin',
+ desc:'RecipeActivity displays full recipe with ingredients, technique, glass type, and garnish. Reads from Room DB via recipeDao().getFromId(), enriches with curated ingredient relationships via Config.getRecipe(). Includes craft button wired to PouringActivity and like/unlike toggling via profile-api.',
+ code:`<span class="ck">val</span> recipeId = intent.getIntExtra(<span class="cs">"recipeId"</span>, <span class="cn">0</span>)
+recipeModel = AppDatabase.getDatabase(<span class="ck">this</span>)
+  ?.recipeDao()?.getFromId(recipeId)!!
+recipeModel = Config.getRecipe(<span class="ck">this</span>, recipeModel)
+likeImg.setOnClickListener {
+  isLike = !isLike
+  likeImg.setImageResource(
+    <span class="ck">if</span> (isLike) R.drawable.heart_red_header_icon
+    <span class="ck">else</span> R.drawable.heart_header_icon)
+  <span class="cc">// POST to favorites API</span>
+  updateFavourite(<span class="ck">this</span>, recipeId, isLike, FavouriteApiCall)
+}`,
+ conn:['recipe-browse','recipe-model-ios','android-recipe-model','android-pour-flow','favorites-drinks','recipe-ratings-api','android-local-db'],
+ guide:`<div class="gs"><div class="gt">Add a new field to the recipe detail screen</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add field to <code>RecipeModel</code> entity and run Room migration</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Update API response parsing in the sync call within HomeActivity to populate the new field</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Add View to <code>activity_recipe.xml</code> layout and bind in <code>RecipeActivity.onCreate</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst"><code>Config.getRecipe()</code> must be called after DAO fetch to populate ingredient relationships — raw DAO result lacks them</span></div></div></div>`}
+
+,{id:'android-recipe-search',l:'Android Recipe Search',cat:'android',sz:4,rel:.8,cl:'Kotlin',
+ desc:'SearchFragment provides real-time cross-app search across recipes, ingredients, and mixers via TextWatcher. Filters Room DB locally — no API call on each keystroke. Results categorized and displayed in RecyclerView. Also surfaces AddLiquorMixerAdapter for ingredient browsing.',
+ code:`searchEditText.addTextChangedListener(<span class="ck">object</span> : TextWatcher {
+  <span class="ck">override fun</span> onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+    filterRecipes.clear()
+    filterRecipes.addAll(
+      recipes.filter { it.name?.contains(s, <span class="ck">true</span>) ?: <span class="ck">false</span> }
+    )
+    filterLiquors.clear()
+    filterLiquors.addAll(
+      itemList.filter { it.title?.contains(s, <span class="ck">true</span>) ?: <span class="ck">false</span> }
+    )
+    recipesAdapter.notifyDataSetChanged()
+  }
+})`,
+ conn:['recipe-catalog-api','ingredients-catalog','scanner-api','android-local-db','android-recipe-details'],
+ guide:`<div class="gs"><div class="gt">Add a new searchable content type</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add new data list and filtered list variables to SearchFragment</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Populate from Room DB in <code>onViewCreated</code> or via DAO query</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Add filter logic in <code>TextWatcher.onTextChanged</code> and a RecyclerView section for results</span></div><div class="gstep hl"><span class="gsn">4</span><span class="gst">All search is local (Room DB) — no API roundtrip per keystroke. Keep filters fast and synchronous</span></div></div></div>`}
+
+// ── Android — Crafting & Pour Flow ────────────────────────────────
+,{id:'android-craft-ready-to-pour',l:'Android Craft View',cat:'android',sz:5,rel:.9,cl:'Kotlin',
+ desc:'CraftFragment shows recipes user can make right now based on bar inventory. Queries Room DB joining UserInventoryBase/Mixer against CuratedIngredients cross-references. Separate filter logic per spirit style (aged, blended, cranberry) maps inventory to recipe prerequisites via InterCuratedBase/MixerMapping tables.',
+ code:`<span class="ck">private fun</span> getIdsForStyles(integers: ArrayList<Int>?, baseId: Int) {
+  <span class="ck">val</span> id = AppDatabase.getDatabase(requireActivity())
+    ?.interCuratedBaseDao()?.getAll(baseId)!!
+  agedBlendedIntegers.addAll(id)
+}
+<span class="ck">private fun</span> addMixers(text: String) {
+  <span class="ck">val</span> ids = AppDatabase.getDatabase(requireActivity())
+    ?.mixersDao()?.getMixersIds(<span class="cs">"%</span><span class="cs">$text</span><span class="cs">%"</span>)!!
+  <span class="ck">if</span> (text.equals(<span class="cs">"Cranberry Juice"</span>, ignoreCase = <span class="ck">true</span>))
+    cranberryIntegers.addAll(ids)
+}`,
+ conn:['ready-to-pour','my-bar','crafting-session-api','availability-engine','android-local-db','android-mybar-inventory','android-pour-flow'],
+ guide:`<div class="gs"><div class="gt">Debug why a recipe does not appear in Craft view</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Verify ingredient exists in <code>UserInventoryBase</code> or <code>UserInventoryMixer</code> Room tables</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Check <code>InterCuratedBaseMapping</code> table — spirit-style cross-reference must include the ingredient FK</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Run <code>CraftFragment.filterRecipes()</code> logic manually with inventory IDs to trace filtering</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">All filtering is done client-side from Room DB — no server call. Stale inventory = stale results</span></div></div></div>`}
+
+,{id:'android-pour-flow',l:'Android Pour Flow',cat:'android',sz:6,rel:.95,cl:'Kotlin',
+ desc:'PouringActivity executes the pour sequence with real-time per-ingredient progress bars. Receives RecipeModel via Intent Parcelable. Sends BLE command "202" (cancel) on X button tap via bound BluetoothService. Progress callbacks update animated UI as hardware dispenses each component. Transitions to PouringCompleteActivity on completion.',
+ code:`recipeModel = intent.getParcelableExtra(<span class="cs">"recipeModel"</span>)!!
+recipeModel.curatedIngredientsBaseModels =
+  AppDatabase.getDatabase(<span class="ck">this</span>)?.curatedIngredientsBaseDao()
+    ?.getAll(recipeModel.id)
+closeImg.setOnClickListener {
+  <span class="ck">if</span> (mBindedService != <span class="ck">null</span> && mBindedService!!.btConnect) {
+    mBindedService!!.sendMessage(<span class="cs">"202"</span>)  <span class="cc">// cancel opcode</span>
+  }
+  finish()
+}`,
+ conn:['crafting','crafting-session-api','android-ble-service','ble-command-builder','ble-opcodes','station-telemetry','drink-complete','android-recipe-details'],
+ guide:`<div class="gs"><div class="gt">Debug Android pour not starting</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Verify <code>mBindedService != null && mBindedService.btConnect == true</code> before initiating pour</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Check <code>RecipeModel.curatedIngredientsBaseModels</code> is non-null — fetched from Room, not from Intent</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">BLE command to start pour is sent via <code>mBindedService.sendMessage(command)</code> — confirm BLE service is bound</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Cancel opcode is hardcoded "202" string — not using BleCommand enum (unlike iOS). Keep in sync if firmware changes</span></div></div></div>`}
+
+// ── Android — MyBar & Inventory ───────────────────────────────────
+,{id:'android-mybar-inventory',l:'Android MyBar',cat:'android',sz:5,rel:.9,cl:'Kotlin',
+ desc:'MyBarFragment shows collapsible sections for user-owned spirits (bases) and mixers with item counts. Launches AddLiquorMixerInventoryActivity for add/remove operations. Inventory changes sync to mybar-api and update Room DB UserInventory tables, which feed CraftFragment availability calculations.',
+ code:`addLiquorLayout.setOnClickListener {
+  <span class="ck">val</span> intent = Intent(context, AddLiquorMixerInventoryActivity::<span class="ck">class</span>.java)
+  intent.putExtra(<span class="cs">"isLiquorSelect"</span>, <span class="ck">true</span>)
+  startActivityForResult(intent, <span class="cn">1111</span>)
+}
+myMixerLayout.setOnClickListener {
+  <span class="ck">val</span> intent = Intent(context, AddLiquorMixerInventoryActivity::<span class="ck">class</span>.java)
+  intent.putExtra(<span class="cs">"isLiquorSelect"</span>, <span class="ck">false</span>)
+  startActivityForResult(intent, <span class="cn">2222</span>)
+}
+<span class="cc">// Result refreshes local counts</span>
+liquorCountTv.text = <span class="cs">"("</span> + liquorCount + <span class="cs">")"</span>`,
+ conn:['my-bar','mybar-api','db-mybar-schema','availability-engine','android-craft-ready-to-pour','android-local-db','station-telemetry'],
+ guide:`<div class="gs"><div class="gt">Sync MyBar inventory to server</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add/remove triggers <code>AddLiquorMixerInventoryActivity</code> via startActivityForResult with request code 1111 (liquor) or 2222 (mixer)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">On result, call <code>mybar-api</code> to sync changes, then update Room DB <code>UserInventoryBase/Mixer</code> tables</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Refresh CraftFragment after inventory changes to update available recipe list</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst"><code>startActivityForResult</code> is deprecated in API 30+ — migrate to ActivityResultLauncher for new code</span></div></div></div>`}
+
+// ── Android — MixLists ─────────────────────────────────────────────
+,{id:'android-mixlist-screen',l:'Android MixLists',cat:'android',sz:5,rel:.85,cl:'Kotlin',
+ desc:'AllMixListActivity hosts ViewPager with two tabs: BarsysMixlistFragment (curated playlists) and MyMixListFragment (user-created lists). CreateEditMixListActivity handles creation/editing. MixListDetailsActivity shows full recipe grid for a selected list. All backed by PlayListsTable and PlayListCategoryModel Room entities.',
+ code:`<span class="ck">val</span> fragmentAdapter = ViewPagerAdapter(supportFragmentManager)
+fragmentAdapter.addFragment(BarsysMixlistFragment())
+fragmentAdapter.addFragment(MyMixListFragment())
+viewPager.adapter = fragmentAdapter
+viewPager.offscreenPageLimit = <span class="cn">2</span>
+createIv.setOnClickListener {
+  startActivity(
+    Intent(<span class="ck">this</span>, CreateEditMixListActivity::<span class="ck">class</span>.java)
+      .putExtra(<span class="cs">"isFromCreateMixList"</span>, <span class="ck">true</span>))
+}`,
+ conn:['mixlists','mixlists-api','db-mixlists-schema','recipe-catalog-api','favorites-drinks','android-local-db','custom-recipe-creation'],
+ guide:`<div class="gs"><div class="gt">Create a new mixlist on Android</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Tap + in AllMixListActivity → opens CreateEditMixListActivity with <code>isFromCreateMixList=true</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">CreateEditMixListActivity POSTs to mixlists-api and writes <code>UserPlayListsTable</code> Room entity</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Add recipes via recipe picker — writes <code>UserPlayListRecipes</code> cross-reference entries</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Barsys curated playlists are read-only — only <code>MyMixListFragment</code> entries can be edited or deleted</span></div></div></div>`}
+
+// ── Android — Profile & Settings ──────────────────────────────────
+,{id:'android-profile-screen',l:'Android Profile',cat:'android',sz:4,rel:.8,cl:'Kotlin',
+ desc:'ProfileActivity is the account management hub routing to YourInfoActivity (name/email), PaymentMethodActivity (saved cards), and SavedAddressActivity (shipping addresses). PreferenceActivity manages unit preference (ml/oz) and notification toggles stored in AppPreferences. All profile mutations go through profile-api.',
+ code:`your_info_layout.setOnClickListener {
+  startActivity(Intent(<span class="ck">this</span>, YourInfoActivity::<span class="ck">class</span>.java))
+}
+payment_method_layout.setOnClickListener {
+  startActivity(Intent(<span class="ck">this</span>, PaymentMethodActivity::<span class="ck">class</span>.java))
+}
+<span class="cc">// PreferenceActivity.kt — unit selection</span>
+mlTv.setOnClickListener {
+  mlTv.setBackgroundDrawable(
+    resources.getDrawable(R.drawable.capsule_shape_red_fill_round_corner_8))
+  AppPreferences.setPreference(<span class="ck">this</span>, <span class="cs">"unit"</span>, <span class="cs">"ml"</span>)
+}`,
+ conn:['profile-mgmt','profile-api','settings-ui','analytics-consent-management','android-app-preferences','android-auth-flow'],
+ guide:`<div class="gs"><div class="gt">Add a new profile settings section</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Create new Activity for the section and add layout row to <code>activity_profile.xml</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Add <code>setOnClickListener</code> in ProfileActivity launching the new Activity via Intent</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">For persistent preferences, use <code>AppPreferences.setPreference(context, key, value)</code></span></div><div class="gstep hl"><span class="gsn">4</span><span class="gst">Measurement unit (ml/oz) affects PouringActivity display — update pour logic when adding new unit types</span></div></div></div>`}
+
+,{id:'android-app-preferences',l:'Android App Preferences',cat:'android',sz:3,rel:.75,cl:'Kotlin',
+ desc:'AppPreferences.kt wraps SharedPreferences for persistent app-wide storage of auth tokens, user ID, device pairing state, and measurement unit preference (ml/oz). Used across all Activities as the single source of truth for session state, replacing repeated direct SharedPreferences access.',
+ code:`<span class="ck">object</span> AppPreferences {
+  <span class="ck">fun</span> getPrefString(ctx: Context, key: String): String? =
+    ctx.getSharedPreferences(<span class="cs">"BarsysPrefs"</span>, MODE_PRIVATE)
+      .getString(key, <span class="ck">null</span>)
+  <span class="ck">fun</span> setPrefString(ctx: Context, key: String, value: String) =
+    ctx.getSharedPreferences(<span class="cs">"BarsysPrefs"</span>, MODE_PRIVATE).edit()
+      .putString(key, value).apply()
+  <span class="ck">const val</span> AUTH_TOKEN = <span class="cs">"authToken"</span>
+  <span class="ck">const val</span> USER_ID    = <span class="cs">"userId"</span>
+  <span class="ck">const val</span> UNIT_PREF  = <span class="cs">"unit"</span>  <span class="cc">// "ml" or "oz"</span>
+}`,
+ conn:['jwt-middleware','settings-ui','analytics-consent-management','android-auth-flow','android-profile-screen'],
+ guide:`<div class="gs"><div class="gt">Read auth token from preferences</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Call <code>AppPreferences.getPrefString(context, AppPreferences.AUTH_TOKEN)</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Pass token as Authorization header: <code>"Bearer $token"</code> in Retrofit API calls</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">On logout, clear all prefs: <code>AppPreferences.clearAll(context)</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">No encryption on SharedPreferences — auth tokens are stored in plaintext. Unlike iOS Keychain, this is not secure storage</span></div></div></div>`}
+
+// ── Android — BLE / Hardware ─────────────────────────────────────
+,{id:'android-ble-gatt',l:'Android BLE GATT',cat:'android',sz:5,rel:.9,cl:'Kotlin',
+ desc:'BLservice.java manages GATT characteristic read/write for BLE hardware communication. Supports three service UUIDs: legacy 0xFFE0, new 0xFFF0, and Nordic UART 6E400001 (same as iOS). Implements DataListener interface for incoming notifications. MTU negotiation handles chunked data for firmware transfer.',
+ code:`<span class="ck">private val</span> GATT_SERVICE_UUID    = <span class="cs">"0000ffe0-0000-1000-8000-00805f9b34fb"</span>
+<span class="ck">private val</span> GATT_CHAR_UUID        = <span class="cs">"0000ffe1-0000-1000-8000-00805f9b34fb"</span>
+<span class="ck">private val</span> GATT_SERVICE_UUID_NEW  = <span class="cs">"0000fff0-0000-1000-8000-00805f9b34fb"</span>
+<span class="ck">private val</span> GATT_NORDIC_UUID       = <span class="cs">"6E400001-B5A3-F393-E0A9-E50E24DCCA9E"</span>
+<span class="cc">// OTA service</span>
+<span class="ck">private val</span> OTA_SERVICE_UUID       = <span class="cs">"fb1e4001-54ae-4a28-9f74-dfccb248601d"</span>
+<span class="ck">var</span> btConnect = <span class="ck">false</span>
+<span class="ck">fun</span> sendMessage(msg: String) {
+  writeCharacteristic?.setValue(msg.toByteArray())
+  connectedGatt?.writeCharacteristic(writeCharacteristic)
+}`,
+ conn:['ble-hardware','ble-opcodes','android-ble-service','android-ble-ota-manager','ble-command-builder','station-telemetry'],
+ guide:`<div class="gs"><div class="gt">Send a BLE command from Android</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Get reference to bound <code>BluetoothService</code> via <code>ServiceConnection</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>mBindedService.sendMessage("opcode")</code> — e.g. "202" for cancel, "200,..." for pour</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Listen for device response via <code>DataListener.onDataReceived()</code> callback in BLservice</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Android uses three GATT service UUIDs for device compatibility — iOS only uses Nordic UART (6E400001). Different devices may respond to different UUIDs</span></div></div></div>`}
+
+,{id:'android-ble-ota-manager',l:'Android OTA Manager',cat:'android',sz:4,rel:.85,cl:'Kotlin',
+ desc:'LEManager.kt extends nRF BleManager for OTA firmware delivery with MTU=512. Declares OTA service UUID fb1e4001 and TX/RX characteristics. Handles MTU request before each transmission, writes firmware chunks via writeCharacteristic, and reports progress percentage via callback. Coordinated by ForegroundService.',
+ code:`<span class="ck">class</span> LEManager(context: Context) : BleManager<LeManagerCallbacks>(context) {
+  <span class="ck">companion object</span> {
+    <span class="ck">const val</span> MTU = <span class="cn">512</span>
+    <span class="ck">val</span> OTA_SERVICE = UUID.fromString(<span class="cs">"fb1e4001-54ae-4a28-9f74-dfccb248601d"</span>)
+    <span class="ck">val</span> OTA_TX_CHAR = UUID.fromString(<span class="cs">"fb1e4002-54ae-4a28-9f74-dfccb248601d"</span>)
+    <span class="ck">val</span> OTA_RX_CHAR = UUID.fromString(<span class="cs">"fb1e4003-54ae-4a28-9f74-dfccb248601d"</span>)
+  }
+  <span class="ck">fun</span> transmitData(bytes: ByteArray, progress: Int, ctx: Context): Boolean {
+    <span class="ck">return if</span> (isConnected && otaTxCharacteristic != <span class="ck">null</span>) {
+      requestMtu(MTU).enqueue()
+      writeCharacteristic(otaTxCharacteristic, bytes) != <span class="ck">null</span>
+    } <span class="ck">else false</span>
+  }
+}`,
+ conn:['ota-firmware-update','android-ble-gatt','ble-hardware','coaster-device-support','station-telemetry'],
+ guide:`<div class="gs"><div class="gt">Initiate firmware update via LEManager</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Connect LEManager to device and verify <code>isConnected && isReady</code> before starting</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Split firmware binary into chunks matching <code>MTU=512</code> in ForegroundService.sendData()</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Monitor <code>LeManagerCallbacks.onDataSent</code> for per-chunk acknowledgement and update progress UI</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">MTU=512 is negotiated per-session — actual MTU may be lower. ForegroundService.sendData() uses <code>mtu</code> field, not hardcoded 512</span></div></div></div>`}
+
+,{id:'android-custom-recipe',l:'Android Custom Recipe',cat:'android',sz:4,rel:.8,cl:'Kotlin',
+ desc:'CreateFragment lets users build custom drinks by selecting spirits (bases) and mixers from catalog with drag-select multi-select. SelectQuantityActivity sets precise volumes (ml/oz). SaveDrinkActivity finalizes with name, cover image, and optional description before posting to recipes-api and writing UserRecipeModel to Room DB.',
+ code:`<span class="ck">private var</span> isLiquorSelect = <span class="ck">true</span>
+<span class="ck">private var</span> liquorItemList  = ArrayList<LiquorAndMixerItemModel>()
+<span class="ck">private var</span> mixerItemList   = ArrayList<LiquorAndMixerItemModel>()
+<span class="ck">private var</span> selectedItems   = ArrayList<LiquorAndMixerItemModel>()
+liquorButtonTv.setOnClickListener {
+  isLiquorSelect = <span class="ck">true</span>
+  liquorAdapter = SelectedLiquorAndMixerAdapter(liquorItemList, requireActivity(), <span class="ck">this</span>)
+  itemCountTv.text = <span class="cs">"("</span> + liquorItemList.size + <span class="cs">")"</span>
+}
+<span class="cc">// Navigate to quantity selection</span>
+startActivityForResult(
+  Intent(<span class="ck">this</span>, SelectQuantityActivity::<span class="ck">class</span>.java).putExtra(<span class="cs">"item"</span>, selectedItem), <span class="cn">101</span>)`,
+ conn:['custom-recipe-creation','ingredients-catalog','products-api','recipes-api','db-recipes-schema','media-upload','android-local-db'],
+ guide:`<div class="gs"><div class="gt">Save a custom recipe on Android</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Select spirits in CreateFragment → opens SelectQuantityActivity per ingredient (requestCode 101)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">After quantity set, navigate to SaveDrinkActivity with ingredient list as Serializable extra</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">SaveDrinkActivity POSTs to <code>recipes-api</code> and inserts <code>UserRecipeModel</code> into Room DB</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Custom recipes require a Barsys 360 device to craft — Shaker Pro and Coaster 2.0 do not support the pour sequence</span></div></div></div>`}
+
 ];
 
 
