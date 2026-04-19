@@ -1,5 +1,7 @@
 # Barsys AI — Knowledge Graph
 
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/github?repository=https%3A%2F%2Fgithub.com%2FMayankBarsys%2Fbarsys-knowledge-graph)
+
 Interactive knowledge graph of the Barsys AI iOS app and Defteros backend. 89 nodes across iOS, Backend API, Data, Infrastructure, and BLE/Hardware layers.
 
 ## Features
