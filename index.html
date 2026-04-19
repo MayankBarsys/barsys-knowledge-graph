@@ -768,7 +768,7 @@ barsys_s                             → Shaker Pro
 
 // ── iOS — Missing Features ──────────────────────────────────────
 
-,{id:'station-cleaning',l:'Station Cleaning',cat:'ios',sz:5,rel:.9,cl:'Swift',
+{id:'station-cleaning',l:'Station Cleaning',cat:'ios',sz:5,rel:.9,cl:'Swift',
  desc:'Full cleaning/flush workflow for Barsys 360 stations. Handles perishable ingredient cleanup, tubing flush sequences. StationCleaningFlowViewController + StationCleaningFlowModel. Triggered from ControlCenterViewController when user switches a perishable ingredient. Sends opcode 227 (clean/pause) via BLE — requires trailing comma: "227,1,".',
  code:`<span class="cc">// Opcode 227 — clean/pause</span>
 BLECommandChannel.send(<span class="cs">"227,1,"</span>)  <span class="cc">// trailing comma required!</span>
@@ -2010,7 +2010,7 @@ function buildDirectoryView(){
       const connCount=connEdges.length;
       const connIds=n.conn||[];
       let tagHtml=connIds.slice(0,3).map(c=>{
-        const t=N.find(x=>x.id===c);
+        const t=N.find(x=>x&&x.id===c);
         return t?'<span class="dct" onclick="selectNode(\''+c+'\');event.stopPropagation()">'+t.l+'</span>':'';
       }).join('');
       if(connIds.length>3) tagHtml+='<span class="dct-more">+'+( connIds.length-3)+'</span>';
@@ -2058,7 +2058,7 @@ function filterDirectory(q){
   let visCount=0;
   document.querySelectorAll('.dir-node').forEach(row=>{
     const id=row.id.replace('dnode-','');
-    const n=N.find(x=>x.id===id);
+    const n=N.find(x=>x&&x.id===id);
     if(!n){return;}
     const match=!ql||
       n.l.toLowerCase().includes(ql)||
@@ -2262,7 +2262,7 @@ function showTab(n,tab){
       if(n.desc)h+='<div class="os"><div class="ol">Description</div><div class="otx">'+n.desc+'</div></div>';
       if(n.conn&&n.conn.length){
         h+='<div class="os"><div class="ol">Connections</div><div class="conn-list">';
-        n.conn.forEach(c=>{const t=N.find(x=>x.id===c);if(t)h+='<span class="conn-tag" onclick="selectNode(\''+c+'\')">'+t.l+'</span>';});
+        n.conn.forEach(c=>{const t=N.find(x=>x&&x.id===c);if(t)h+='<span class="conn-tag" onclick="selectNode(\''+c+'\')">'+t.l+'</span>';});
         h+='</div></div>';
       }
       if(!h)h='<div class="otx" style="padding:20px;color:var(--t3)">No description available</div>';
@@ -2279,7 +2279,7 @@ function showTab(n,tab){
   }
 }
 function selectNode(id){
-  sel=id;const n=N.find(x=>x.id===id);if(n)openPanel(n);
+  sel=id;const n=N.find(x=>x&&x.id===id);if(n)openPanel(n);
   if(viewMode==='graph'){const node=nodeMap[id];if(node){cam.x=-node.x*zoom;cam.y=-node.y*zoom;}}
 }
 function closePanel(){document.getElementById('dp').classList.remove('on');sel=null;}
@@ -2400,7 +2400,7 @@ function scoreAndRank(words){
   });
   const seeded=N.filter(n=>scores[n.id]>=3).map(n=>n.id);
   seeded.forEach(id=>{
-    const nd=N.find(x=>x.id===id);
+    const nd=N.find(x=>x&&x.id===id);
     if(nd&&nd.conn)nd.conn.forEach(cid=>{if(scores[cid]!==undefined)scores[cid]+=0.5;});
   });
   return N.filter(n=>scores[n.id]>0)
@@ -2574,7 +2574,7 @@ async function doSearch(q){
   if(!q.trim()){srl.innerHTML='';mb.textContent='';mb.className='s-mode';return;}
 
   const words=q.toLowerCase().split(/[\s\W]+/).filter(w=>w.length>2&&!STOP.has(w));
-  const qmode=isQuestion(q)&&words.length>1;
+  const qmode=isQuestion(q)||q.length>25;
 
   if(qmode){
     mb.textContent='AI SEARCH';mb.className='s-mode qa';
