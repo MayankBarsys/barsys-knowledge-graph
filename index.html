@@ -1448,7 +1448,8 @@ POST /api/v1/auth/refresh         <span class="cc">// rotate JWT</span>
 POST /api/v1/auth/token-exchange  <span class="cc">// Ory↔JWT swap</span>
 POST /api/v1/auth/preferences     <span class="cc">// onboarding prefs</span>
 POST /api/v1/users/me/agreements  <span class="cc">// T&amp;C accept</span>`,
- conn:['ory','profile-api','jwt-middleware','ios-app','onboarding']},
+ conn:['ory','profile-api','jwt-middleware','ios-app','onboarding'],
+ guide:`<div class="gs"><div class="gt">Add new auth method</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add handler in <code>auth_flow_handler.go</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Register route in <code>app.go</code> (no JWT middleware — pre-auth)</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Rate limiter enforces 5 req/min per IP — new endpoints inherit this</span></div></div></div>`},
 
 {id:'jwt-middleware',l:'JWT + Rate Limiter',cat:'backend',sz:4,rel:1,
  desc:'RS256 JWT validation middleware protecting all /my/* routes. RequireAuth() validates Bearer token signed with JWT_RSA_PRIVATE_KEY. OptionalAuth() attaches user if present. Party mode uses separate HS256 symmetric guest tokens (PARTY_JWT_SECRET) via PartyOrGuestAuthMiddleware. Three-tier rate limiter: auth=5, write=30, read=100 req/min per IP via RATE_LIMIT_* env vars.',
@@ -1463,7 +1464,8 @@ POST /api/v1/users/me/agreements  <span class="cc">// T&amp;C accept</span>`,
 auth:  5   <span class="cc">// RATE_LIMIT_AUTH</span>
 write: 30  <span class="cc">// RATE_LIMIT_WRITE</span>
 read:  100 <span class="cc">// RATE_LIMIT_READ</span>`,
- conn:['ory','defteros','auth-api','party-api']},
+ conn:['ory','defteros','auth-api','party-api'],
+ guide:`<div class="gs"><div class="gt">Debug JWT validation failure</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Ensure token is RS256 Bearer — not raw Ory session token</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Party routes use HS256 (PARTY_JWT_SECRET) — <code>PartyOrGuestAuthMiddleware</code> handles both</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">OptionalAuth() silently passes — use RequireAuth() where JWT is mandatory</span></div></div></div>`},
 
 {id:'delta-sync',l:'Delta Sync Cache',cat:'backend',sz:5,rel:1,
  desc:'Incremental data sync — clients send timestamp, receive only records updated since. All endpoints use ?timestamp=<unix> param (not ?ts=). Registered routes: GET /cache/recipes?timestamp=, /cache/mixlists?timestamp=, /cache/profile, /cache/devices, /cache/stations, /cache/craft-sessions, /cache/reviews. cache_handler.go + cache_service.go. iOS stores per-resource timestamps in UserDefaults. Eliminates full-refetch on every app open.',
@@ -1481,7 +1483,8 @@ UserDefaults.standard.set(
   Date().timeIntervalSince1970,
   forKey: <span class="cs">"recipes_last_sync"</span>
 )`,
- conn:['recipes-api','mixlists-api','mybar-api','devices-api','profile-api','sqlite-cache','ios-app']},
+ conn:['recipes-api','mixlists-api','mybar-api','devices-api','profile-api','sqlite-cache','ios-app'],
+ guide:`<div class="gs"><div class="gt">Force full resync</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Clear UserDefaults timestamp key for the target resource</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>GET /cache/recipes</code> with no timestamp — returns full dataset</span></div><div class="gstep hl"><span class="gsn">3</span><span class="gst">SQLite replaced entirely — all existing rows overwritten</span></div></div></div>`},
 
 {id:'chat-history',l:'Chat History DB',cat:'data',sz:4,rel:1,
  desc:'Bond AI conversation persistence. ACTIVE table is conversation_messages (role/content/conversation_id/user_id/created_at) — chat_history is legacy and no longer primary. conversation_messages uses session_id TEXT directly (no separate conversations table). chat_history_summary stores compressed session summaries injected as context on next session. chat_handler_ext.go exposes GET /chat/history and POST /chat/feedback. Indexed by user_id + session_id in PostgreSQL.',
@@ -1502,7 +1505,8 @@ created_at TIMESTAMPTZ
 <span class="cc">// Exposed via chat_handler_ext.go</span>
 GET /api/v1/chat/history
 POST /api/v1/chat/feedback`,
- conn:['bond-ai','chat-api','postgres','bond']},
+ conn:['bond-ai','chat-api','postgres','bond'],
+ guide:`<div class="gs"><div class="gt">Retrieve conversation history</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">GET /api/v1/chat/history (JWT required)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Returns from <code>conversation_messages</code> — not legacy <code>chat_history</code> table</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Filter by session_id to isolate a single conversation</span></div></div></div>`},
 
 {id:'media-upload',l:'Media Upload (GCS)',cat:'backend',sz:4,rel:1,
  desc:'GCS-backed media upload system. PUT /my/profile/picture handles multipart user avatar upload. Device docs also stored in GCS. Metadata tracked in media_storage table (bucket, path, content_type, size_bytes). GCP Storage Repository at repositories/gcp/storage_repository.go. Configurable via GOOGLE_STORAGE_BUCKET_NAME + GOOGLE_STORAGE_BASE_PATH. Returns CDN URL after upload.',
@@ -1519,7 +1523,8 @@ id, user_id, bucket, path,
 content_type, size_bytes, created_at
 
 PUT /api/v1/my/profile/picture`,
- conn:['gcs','profile-api','devices-api','postgres']},
+ conn:['gcs','profile-api','devices-api','postgres'],
+ guide:`<div class="gs"><div class="gt">Debug upload failure</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Verify <code>GOOGLE_STORAGE_BUCKET_NAME</code> env var is set</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst"><code>GOOGLE_APPLICATION_CREDENTIALS_JSON</code> must be <code>data:application/json;base64,...</code> format</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Compress to &lt;2MB before upload — no server-side compression</span></div></div></div>`},
 
 {id:'party-websocket',l:'Party WebSocket Hub',cat:'backend',sz:4,rel:1,
  desc:'Real-time WebSocket for party mode. GET /api/v1/party/sessions/:id/ws upgrades connection. PartyHub manages rooms: BroadcastToSession (all participants), BroadcastToGuest (targeted), BroadcastToHost. Events: party state, shake challenge results, leaderboard deltas, guest join/leave. Accepts both RS256 JWT (hosts) and HS256 guest tokens. Global + city-based leaderboards.',
@@ -1538,7 +1543,8 @@ hub.BroadcastToHost(sessionID, event)
 <span class="cc">// WS event types</span>
 party_state_update | challenge_score
 leaderboard_delta  | guest_joined | shake_result`,
- conn:['party-api','websocket-hub','ios-app']},
+ conn:['party-api','websocket-hub','ios-app'],
+ guide:`<div class="gs"><div class="gt">Debug WebSocket drop</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Host sends RS256 JWT; guest sends HS256 — both accepted by PartyOrGuestAuthMiddleware</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">WS connection idles out — implement 30s ping/pong heartbeat on iOS side</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Hub broadcasts are fire-and-forget — disconnected clients miss events</span></div></div></div>`},
 
 {id:'pubsub-topics',l:'Pub/Sub Topics',cat:'infra',sz:4,rel:1,
  desc:'Four Google Pub/Sub topics: UserData (auth + profile changes, consumed by analytics), RemoveUser (GDPR deletion cascade across all services), StationConfig (station slot updates to downstream consumers), FullRecipe (recipe create/update events for vector embedding pipeline). All names via GOOGLE_PUBSUB_TOPIC_* env vars. Repository: repositories/gcp/pubsub_repository.go.',
@@ -1554,7 +1560,8 @@ TopicFullRecipe    = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_FULL_RECIPE"</spa
   data, _ := json.Marshal(r)
   topic.Publish(ctx, &pubsub.Message{Data: data})
 }`,
- conn:['pubsub','recipes-api','profile-api','devices-api','station-slot-api','vector-embeddings']},
+ conn:['pubsub','recipes-api','profile-api','devices-api','station-slot-api','vector-embeddings'],
+ guide:`<div class="gs"><div class="gt">Debug missing Pub/Sub event</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">GCP Console → Pub/Sub → Subscriptions → View messages in flight</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Check dead letter queue for failed deliveries</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">All publishes are async — 200 response does NOT confirm delivery</span></div></div></div>`},
 
 // ── Missing iOS Nodes ──────────────────────────────────────────────────────
 
@@ -1577,7 +1584,8 @@ TopicFullRecipe    = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_FULL_RECIPE"</spa
     } <span class="ck">else</span> { showAuth() }
   }
 }`,
- conn:['ios-app','auth-flow','barbot','crafting','device-pairing-ui','recipe-browse','mixlists','deep-links']},
+ conn:['ios-app','auth-flow','barbot','crafting','device-pairing-ui','recipe-browse','mixlists','deep-links'],
+ guide:`<div class="gs"><div class="gt">Add a new coordinator</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Create class conforming to <code>Coordinator</code> protocol — implement <code>start()</code> and <code>childCoordinators[]</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Add to parent coordinator's <code>childCoordinators</code> before calling <code>start()</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Remove from <code>childCoordinators</code> on dismiss or you'll leak the coordinator</span></div></div></div>`},
 
 {id:'ble-manager',l:'BLE Manager',cat:'ios',sz:5,rel:1,
  desc:'BleManager singleton (sharedManager) manages full CoreBluetooth lifecycle. Implements CBCentralManagerDelegate + CBPeripheralDelegate in-class. Key methods: startBleScan(), stopBleScan(), connect(), disconnect(), isBarsys360Connected(), isCoasterConnected(), writeCommand(). Commands are constructed inline and sent via writeCommand() as UTF-8 Data to the UART Write characteristic. BleManagerDelegate.swift provides the delegate protocol used by VCs to receive events. No separate BleCommandBuilder class.',
@@ -1595,7 +1603,8 @@ TopicFullRecipe    = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_FULL_RECIPE"</spa
   <span class="ck">func</span> isBarsys360Connected() -> Bool
   <span class="ck">func</span> isCoasterConnected() -> Bool
 }`,
- conn:['ble-hardware','ble-opcodes','crafting','stations-menu-vc','barbot','coordinator-nav','control-center']},
+ conn:['ble-hardware','ble-opcodes','crafting','stations-menu-vc','barbot','coordinator-nav','control-center'],
+ guide:`<div class="gs"><div class="gt">Handle BLE reconnect</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">BleManager auto-reconnects with exponential backoff on disconnect</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Commands queued during reconnect are NOT retried — resend after <code>centralManagerDidConnect</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">15s scan timeout, 10s connection timeout — show UI if exceeded</span></div></div></div>`},
 
 {id:'speak-easy-ws',l:'Speak Easy WebSocket',cat:'ios',sz:4,rel:1,
  desc:'SocketManager.swift in Helpers/SocketManager/ and SocketDelegates.swift provide WebSocket infrastructure for the Speak Easy smart speaker product. AppStateManager handles app state for reconnection. Actual BarBot AI uses SSE via BarBotSSEClient.swift (URLSession.bytes) — not WebSocket. Starscream library and bouncer.barsys.com endpoint are planned for Speak Easy product; verify Podfile for current integration status.',
@@ -1615,7 +1624,8 @@ TopicFullRecipe    = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_FULL_RECIPE"</spa
   <span class="ck">func</span> didReceive(event: WebSocketEvent, ...)
 }
 <span class="cc">// AppStateManager: handles bg/fg reconnect</span>`,
- conn:['ios-app','coordinator-nav','barbot','websocket-hub']},
+ conn:['ios-app','coordinator-nav','barbot','websocket-hub'],
+ guide:`<div class="gs"><div class="gt">BarBot vs Speak Easy transport</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">BarBot AI uses SSE via <code>BarBotSSEClient.swift</code> — NOT WebSocket</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Speak Easy uses <code>SocketManager.swift</code> (Starscream) to <code>bouncer.barsys.com</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Verify Starscream is in Podfile before calling SocketManager.connect()</span></div></div></div>`},
 
 {id:'local-db',l:'Local SQLite DB',cat:'ios',sz:5,rel:1,
  desc:'DBManager singleton wraps raw sqlite3 C API (no FMDB or GRDB). All methods in single DBManager class with DBHelper, DBProvider, DBQueries helpers. Core methods: insertToDatabase(), fetchMixlists(), fetchRecipes(), fetchFavourites(). DBQueries.swift holds SQL string constants. DBHelper.swift handles db file init. Recipes and mixlists cached after API fetch; read locally on subsequent access. Sync timestamps stored in UserDefaults.',
@@ -1633,7 +1643,8 @@ TopicFullRecipe    = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_FULL_RECIPE"</spa
   <span class="ck">func</span> fetchFavourites() -> [Recipe]
 }
 <span class="cc">// DBQueries.swift holds all SQL constants</span>`,
- conn:['sqlite-cache','recipe-browse','mixlists','my-bar','delta-sync','favorites-drinks','recipe-model-ios']},
+ conn:['sqlite-cache','recipe-browse','mixlists','my-bar','delta-sync','favorites-drinks','recipe-model-ios'],
+ guide:`<div class="gs"><div class="gt">Schema migration</div><div class="gsteps"><div class="gstep warn"><span class="gsn">!</span><span class="gst">No migration framework — schema changes require fresh install or manual ALTER TABLE</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Test cycle: delete app → reinstall → verify initial delta sync completes</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">SQL string constants live in <code>DBQueries.swift</code> — edit there first</span></div></div></div>`},
 
 {id:'analytics-layer',l:'Analytics + Braze',cat:'ios',sz:4,rel:1,
  desc:'Dual analytics: TrackEventsClass fires 50+ custom events (TrackEventName enum) to Defteros /analytics endpoint; Braze SDK initialized in AppDelegate with API key d5beb9b6-9499-4213-b4dd-f36322e1d444 and endpoint sdk.iad-07.braze.com for push + in-app messaging. AnalyticsConsentManager handles GDPR/CCPA consent gates before event firing. IPAddressManager (Swift actor, thread-safe) fetches public IP for geo-tagging events. Firebase Analytics also integrated for crash reporting.',
@@ -1655,7 +1666,8 @@ TopicFullRecipe    = env(<span class="cs">"GOOGLE_PUBSUB_TOPIC_FULL_RECIPE"</spa
   <span class="ck">static func</span> hasConsent() -> Bool
   <span class="ck">static func</span> requestConsent(completion: ...)
 }`,
- conn:['ios-app','push-notifications-api','profile-mgmt','auth-flow']},
+ conn:['ios-app','push-notifications-api','profile-mgmt','auth-flow'],
+ guide:`<div class="gs"><div class="gt">Add a new tracked event</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add case to <code>TrackEventName</code> enum with the event string</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>TrackEventsClass.track(.yourEvent, properties: [:])</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Event is silently dropped if <code>AnalyticsConsentManager.isConsentGranted == false</code></span></div></div></div>`},
 
 {id:'deep-links',l:'Deep Links',cat:'ios',sz:4,rel:1,
  desc:'URL scheme barsysapp:// (confirmed in Info.plist for bundle com.llc.barsysapp). Deep-link handling is NOT yet implemented — no openURL handler in AppDelegate, no openURLContexts in SceneDelegate, no UIViewController+DeepLinks.swift file. The URL scheme is declared infrastructure only with no routing logic in the current codebase.',
@@ -1672,7 +1684,8 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
 
 <span class="cc">// UIViewController+DeepLinks.swift</span>
 <span class="cc">// extension UIViewController { deepLink helpers }</span>`,
- conn:['ios-app','coordinator-nav','recipe-browse','mixlists','barbot']},
+ conn:['ios-app','coordinator-nav','recipe-browse','mixlists','barbot'],
+ guide:`<div class="gs"><div class="gt">Implement deep link routing</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add <code>scene(_:openURLContexts:)</code> to <code>SceneDelegate.swift</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Parse <code>barsysapp://</code> URL path components → route to coordinator</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">URL scheme declared in Info.plist but routing logic not yet implemented</span></div></div></div>`},
 
 {id:'security-layer',l:'Security Layer',cat:'ios',sz:4,rel:1,
  desc:'Auth tokens stored in KEYCHAIN via KeychainHelper.swift (11 keys). SSL pinning IS implemented via SSLPinningManager.swift using SHA256 SPKI certificate pinning for api-ng.barsys.com (hash: OdSlmQD9NWJh4EbcOHBxkhygPwNSwA9Q91eounfbcoE=) and ci.bond-mvp1.barsys.com (hash: kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=). ENABLE_STATIC_AUTH_TOKEN env var enables dev auth bypass in non-production builds. URLSession delegate intercepts didReceive challenge for pinning enforcement.',
@@ -1688,7 +1701,8 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
     <span class="cc">// extract SPKI hash, compare against pinnedHashes</span>
   }
 }`,
- conn:['ios-app','auth-flow','defteros','local-db']},
+ conn:['ios-app','auth-flow','defteros','local-db'],
+ guide:`<div class="gs"><div class="gt">Rotate pinned certificate</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Extract new SHA256 SPKI hash from updated certificate</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Update <code>pinnedHashes</code> array in <code>SSLPinningManager.swift</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Requires app release — pinning enforced at URLSession level, no runtime override</span></div></div></div>`},
 
 {id:'control-center',l:'Control Center',cat:'ios',sz:5,rel:1,
  desc:'ControlCenterViewController/ViewModel is the device management dashboard entered after pairing. Shows station grid (up to 6 slots), BLE connection status, pour history shortcut. ControlCenterCoordinator manages sub-flows: StationsMenuVC (slot config), StationCleaningFlowVC (guided clean), DeviceRenameVC. ControlCenterModel tracks live slot states. Primary hub for all hardware interaction beyond simple crafting.',
@@ -1707,7 +1721,8 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
       BleCommandBuilder.buildCleanCommand(slot))
   }
 }`,
- conn:['stations-menu-vc','station-cleaning','device-pairing-ui','ble-manager','barbot','coordinator-nav','station-slot-api']},
+ conn:['stations-menu-vc','station-cleaning','device-pairing-ui','ble-manager','barbot','coordinator-nav','station-slot-api'],
+ guide:`<div class="gs"><div class="gt">Add station slot action</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add method to <code>ControlCenterViewModel</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Send BLE command via <code>BleManager.sharedManager.writeCommand()</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Update <code>@Published var stations</code> to trigger UI refresh</span></div></div></div>`},
 
 {id:'drink-complete',l:'Drink Complete Flow',cat:'ios',sz:4,rel:1,
  desc:'DrinkCompleteViewModel handles post-crafting UX. Animates completion screen with drink image + name. Shows Add to Favorites and social share sheet. Triggered by CraftingCoordinator.showDrinkComplete() when BleManager receives the DATA Flushed BLE response (which follows opcode 221,405 remove-glass signal). No rateRecipe() method or BarBotHistoryManager in current codebase.',
@@ -1724,7 +1739,8 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
   }
 }
 <span class="cc">// Trigger: BLE opcode 221,405 (remove glass)</span>`,
- conn:['crafting','recipe-ratings-api','barbot-history','favorites-drinks','ble-opcodes','ble-manager']},
+ conn:['crafting','recipe-ratings-api','barbot-history','favorites-drinks','ble-opcodes','ble-manager'],
+ guide:`<div class="gs"><div class="gt">Trigger drink complete</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">BleManager receives opcode <code>221,405</code> (remove glass signal)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">CraftingCoordinator calls <code>showDrinkComplete(recipe:)</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">DrinkCompleteViewModel handles rating + favorites — both are optional user actions</span></div></div></div>`},
 
 {id:'coaster-device-support',l:'Coaster Device Support',cat:'ios',sz:4,rel:1,
  desc:'BleManager supports two Barsys device types beyond BarBot 360: Barsys Coaster (smart coaster that tracks glass placement) and Barsys Shaker (automated cocktail shaker). isCoasterConnected() / isShaker() methods in BleManager distinguish device type post-pairing. CoasterDeviceVC handles coaster-specific setup flow. BLE service UUID differs per device type — discovery filters by supported service UUIDs. Both device types share same Nordic UART UUIDs + opcodes; distinction is by peripheral name prefix (barsys_c vs barsys_360), not by opcode set.',
@@ -1740,7 +1756,8 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
     ?? <span class="ck">false</span>
 }
 <span class="cc">// Device types: Barsys360, Coaster, Shaker</span>`,
- conn:['ble-manager','ble-hardware','device-pairing-ui','crafting','control-center']},
+ conn:['ble-manager','ble-hardware','device-pairing-ui','crafting','control-center'],
+ guide:`<div class="gs"><div class="gt">Distinguish device type post-pairing</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Call <code>isCoasterConnected()</code> or <code>isBarsys360Connected()</code> after CBPeripheral connects</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Distinction is by peripheral name prefix (barsys_c vs barsys_360), not service UUID</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">All device types share same Nordic UART UUIDs and opcode set</span></div></div></div>`},
 
 {id:'custom-recipe-creation',l:'Custom Recipe Creation',cat:'ios',sz:4,rel:1,
  desc:'MakeMyOwnViewController + MakeMyOwnCoordinator allow users to build custom cocktail recipes from scratch. Users select base spirits, mixers, and garnishes from their MyBar inventory. MakeMyOwnViewModel validates ingredient combinations and calculates pour volumes for BarBot 360 compatibility. Finished recipes can be saved to MyRecipes (POST /my/recipes) or crafted immediately. MakeMyOwnCoordinator is one of the 10 confirmed coordinator classes.',
@@ -1754,7 +1771,8 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
   }
 }
 <span class="cc">// Saves to POST /api/v1/my/recipes</span>`,
- conn:['ios-app','coordinator-nav','my-bar','recipes-api','crafting','recipe-model-ios']},
+ conn:['ios-app','coordinator-nav','my-bar','recipes-api','crafting','recipe-model-ios'],
+ guide:`<div class="gs"><div class="gt">Save custom recipe</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Build recipe in <code>MakeMyOwnViewModel</code> with ingredients from MyBar</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">POST /api/v1/my/recipes → saved with <code>creator_type: "community"</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Total pour volume must fit Barsys 360 capacity — validate before crafting</span></div></div></div>`},
 
 {id:'web-content-viewer',l:'Web Content Viewer',cat:'ios',sz:3,rel:.85,
  desc:'WebViewController wraps WKWebView to display in-app web content for Terms & Conditions, Privacy Policy, and legal pages. Loaded from CDN or barsys.com URLs. Handles navigation events to prevent external redirects. Used from onboarding (T&C acceptance flow), Settings/Profile for legal docs, and any deep-linked legal content. Simple WKNavigationDelegate implementation — no JavaScript bridging required.',
@@ -1771,7 +1789,8 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
   }
 }
 <span class="cc">// Used for T&C, Privacy Policy pages</span>`,
- conn:['ios-app','coordinator-nav','onboarding','profile-mgmt']},
+ conn:['ios-app','coordinator-nav','onboarding','profile-mgmt'],
+ guide:`<div class="gs"><div class="gt">Load new URL</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Set <code>WebViewController.urlString</code> before presenting</span></div><div class="gstep"><span class="gsn">2</span><span class="gst"><code>viewDidLoad</code> auto-loads URL via <code>WKWebView.load(URLRequest)</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Implement <code>WKNavigationDelegate</code> to block external redirects</span></div></div></div>`},
 
 {id:'event-tracking-system',l:'Event Tracking System',cat:'ios',sz:4,rel:1,
  desc:'Centralized event tracking via TrackEventName enum with 74 named events covering the full user journey: onboarding (signup_started, otp_verified), discovery (recipe_viewed, search_performed), crafting (craft_started, drink_crafted, craft_abandoned), social (mixlist_shared, friend_added), hardware (device_paired, ble_connected, pour_started). All events routed through TrackEventsClass which POSTs to Defteros /analytics and also logs to Braze and Firebase. Each event carries user_id, session_id, timestamp, and context properties.',
@@ -1785,7 +1804,8 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
   <span class="ck">case</span> devicePaired     = <span class="cs">"device_paired"</span>
   <span class="cc">// 44+ more events...</span>
 }`,
- conn:['analytics-layer','ios-app','crafting','recipe-browse','barbot','device-pairing-ui','onboarding']},
+ conn:['analytics-layer','ios-app','crafting','recipe-browse','barbot','device-pairing-ui','onboarding'],
+ guide:`<div class="gs"><div class="gt">Debug missing event</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Verify <code>AnalyticsConsentManager.isConsentGranted == true</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Check event case exists in <code>TrackEventName</code> enum</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Monitor Defteros <code>/analytics</code> endpoint logs for 400/401 errors</span></div></div></div>`},
 
 {id:'analytics-consent-management',l:'Analytics Consent',cat:'ios',sz:3,rel:.9,
  desc:'AnalyticsConsentManager (enum, not class) enforces GDPR/CCPA consent. Key property: isConsentGranted (static var — checks UserDefaults via UserDefaultsClass). TrackEventsClass guards every event: guard AnalyticsConsentManager.isConsentGranted else { return }. Also exposes hasPromptBeenShown, isTrackingAuthorized, isIPCollectionPermitted, setConsent(_ granted: Bool), requestConsentIfNeeded(), resetConsent().',
@@ -1802,7 +1822,8 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
       forKey: <span class="cs">"analytics_consent"</span>)
   }
 }`,
- conn:['analytics-layer','ios-app','onboarding','profile-mgmt']},
+ conn:['analytics-layer','ios-app','onboarding','profile-mgmt'],
+ guide:`<div class="gs"><div class="gt">Handle consent denial</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Call <code>requestConsentIfNeeded()</code> on first launch — modal shown once</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">If denied: all <code>TrackEventsClass</code> calls silently guard-return — no data collected</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">User can update via <code>setConsent(.granted)</code> from Settings screen</span></div></div></div>`},
 
 {id:'image-picker-upload',l:'Image Picker + Upload',cat:'ios',sz:3,rel:.85,
  desc:'ImagePickerViewController wraps UIImagePickerController for camera + photo library access. Used in two flows: (1) profile picture — user selects/captures photo, compressed to JPEG, uploaded via PUT /my/profile/picture to GCS via Defteros media-upload service; (2) ingredient scanning — UploadIngredientsImage flow sends image to barbot-ml for bottle/label detection. Image compression and aspect ratio normalization applied before upload. Camera permission handled via NSCameraUsageDescription.',
@@ -1818,7 +1839,8 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
     uploadImage(img.jpegData(compressionQuality: 0.8))
   }
 }`,
- conn:['ios-app','profile-mgmt','media-upload','barbot-ml','scanner-api']},
+ conn:['ios-app','profile-mgmt','media-upload','barbot-ml','scanner-api'],
+ guide:`<div class="gs"><div class="gt">Handle camera permission denied</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Check <code>AVCaptureDevice.authorizationStatus(.video)</code> before presenting picker</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Show alert directing user to Settings if <code>.denied</code> or <code>.restricted</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst"><code>NSCameraUsageDescription</code> must be in Info.plist — rejection without it</span></div></div></div>`},
 
 {id:'video-playback',l:'Video Playback',cat:'ios',sz:3,rel:.8,
  desc:'VideoPlayerManager (actual class name) handles in-app video. Uses AVPlayer + AVPlayerLayer embedded in UIView — not AVPlayerViewController. Used in TutorialViewController (recipe walkthroughs) and DevicePairedViewController (device onboarding). BarBot onboarding uses bundled MP4 assets from app bundle. User-initiated play only. No video_url field exists on Recipe model.',
@@ -1835,7 +1857,8 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
   }
 }
 <span class="cc">// recipe.video_url → CDN link</span>`,
- conn:['ios-app','recipe-browse','device-pairing-ui','barbot']}
+ conn:['ios-app','recipe-browse','device-pairing-ui','barbot'],
+ guide:`<div class="gs"><div class="gt">Add video to onboarding</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Bundle MP4 in app bundle or use a CDN URL</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>VideoManager.play(url:from:)</code> — presents <code>AVPlayerViewController</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Recipe model has no <code>video_url</code> field — do not attempt to read it from recipe data</span></div></div></div>`}
 
 ];
 
