@@ -2,13 +2,17 @@
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/github?repository=https%3A%2F%2Fgithub.com%2FMayankBarsys%2Fbarsys-knowledge-graph)
 
-Interactive knowledge graph of the Barsys AI iOS app and Defteros backend. 89 nodes across iOS, Backend API, Data, Infrastructure, and BLE/Hardware layers.
+Interactive knowledge graph of the Barsys AI iOS app and Defteros backend. 144 nodes across iOS, Android, Backend API, Data, Infrastructure, and BLE/Hardware layers.
+
+Built from `feature/barbot-sse-migration` + `integration/audit-09.04.26` — last updated Apr 20 2026.
 
 ## Features
 
-- Force-directed graph with 89 nodes and 168+ connections
-- Directory view — browse all nodes by category
-- **AI Search** — ask natural language questions, get answers with clickable node references
+- Force-directed neural network graph — 144 nodes, 168+ connections, animated signal pulses
+- Category clustering: iOS · Android · Backend · Data · Infrastructure · BLE
+- Platform overview panel — category breakdown, top connected nodes at a glance
+- Directory view — browse and filter all nodes by category
+- **AI Search** — ask natural language questions, get step-by-step answers with clickable node references
 
 ## Deploy to Railway (recommended — one URL to share)
 
