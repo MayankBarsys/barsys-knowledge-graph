@@ -2602,7 +2602,114 @@ myDrinksRecipes: List&lt;GetRecipesData&gt;
 CREATE INDEX USING hnsw
   (content_embedding vector_cosine_ops);`,
  conn:['bond-ai','vector-embeddings','intelligence-api','chat-api','postgres','barbot-ml'],
- guide:`<div class="gs"><div class="gt">How scraped content feeds Bond AI answers</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">A scraper crawls barsys.com pages and stores text + URL in barsys_scraped_content</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Embeddings are generated (1536-dim) for both the page content and the URL, stored as pgvector columns</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">When a user asks BarBot a question, Bond embeds the query and runs HNSW cosine search against content_embedding</span></div><div class="gstep"><span class="gsn">4</span><span class="gst">Top-k matching pages are injected as context into the BarBot system prompt before Claude generates the response</span></div></div></div>`}
+ guide:`<div class="gs"><div class="gt">How scraped content feeds Bond AI answers</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">A scraper crawls barsys.com pages and stores text + URL in barsys_scraped_content</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Embeddings are generated (1536-dim) for both the page content and the URL, stored as pgvector columns</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">When a user asks BarBot a question, Bond embeds the query and runs HNSW cosine search against content_embedding</span></div><div class="gstep"><span class="gsn">4</span><span class="gst">Top-k matching pages are injected as context into the BarBot system prompt before Claude generates the response</span></div></div></div>`},
+
+// ── Audit additions 2026-04-19 ─────────────────────────────────────
+
+// iOS
+{id:'pour-rate-service',l:'Pour Rate Service',cat:'ios',sz:4,rel:.8,cl:'Swift',
+ desc:'PourRateService.swift — @MainActor singleton that estimates hardware pour throughput (mL/sec) for the PourProgressRingView countdown ring. Maintains a capped rolling average (maxSamples=25, EMA-style) updated via record(volumeML:elapsedSeconds:) after each completed pour. Default conservative estimate: 3.0 mL/sec (~4 oz / 40 s on Barsys 360 pumps). Purely informational — authoritative state comes from BLE ACKs; ring reconciles on dispensingStarted/dispensingComplete events.',
+ code:`<span class="ck">@MainActor</span>
+<span class="ck">final class</span> <span class="cn">PourRateService</span> {
+  <span class="ck">static let</span> shared = PourRateService()
+  <span class="ck">private(set) var</span> averageMLPerSecond: Double = 3.0
+  <span class="ck">private var</span> sampleCount: Int = 0
+  <span class="ck">private let</span> maxSamples: Int = 25
+
+  <span class="ck">func</span> <span class="cn">record</span>(volumeML: Double, elapsedSeconds: TimeInterval)
+  <span class="ck">func</span> <span class="cn">estimatedDuration</span>(forVolumeML: Double) -> TimeInterval
+}`,
+ conn:['crafting','ble-manager','ble-opcodes','drink-complete']},
+
+// Backend
+{id:'party-guest-auth',l:'Party Guest Auth',cat:'backend',sz:4,rel:.8,cl:'Go',
+ desc:'GuestAuthMiddleware and PartyOrGuestAuthMiddleware in party_handler.go provide JWT-based authentication for party mode guests who join without a Barsys account. Guests receive a short-lived JWT signed with PARTY_JWT_SECRET (HS256) after joining via 6-char invite code. PartyOrGuestAuthMiddleware allows either Ory-authenticated hosts or guest-token holders to access party session routes (GET /sessions/:id, /queue, /challenges, /scorecard, /badges, WebSocket). Distinct from main JWT middleware which requires Ory identity.',
+ code:`<span class="cc">// Two middleware tiers for party routes</span>
+<span class="cm">GuestAuthMiddleware</span>        <span class="cc">→ guests only (HS256 PARTY_JWT_SECRET)</span>
+<span class="cm">PartyOrGuestAuthMiddleware</span> <span class="cc">→ Ory host OR guest JWT</span>
+
+<span class="cc">// Routes using partyOrGuestAuth</span>
+<span class="cm">GET</span> /sessions/:id
+<span class="cm">GET</span> /sessions/:id/requests
+<span class="cm">GET</span> /sessions/:id/challenges/:challenge_id
+<span class="cm">GET</span> /sessions/:id/ws  <span class="cc">→ WebSocket</span>`,
+ conn:['party-api','party-websocket','jwt-middleware','auth-api','ory','websocket-hub']},
+
+// Data
+{id:'device-docs-store',l:'Device Docs Store',cat:'data',sz:4,rel:.75,cl:'PostgreSQL',
+ desc:'device_docs table (migration 006) stores chunked device manual text with 1536-dim pgvector embeddings for semantic similarity search during device setup and troubleshooting. Schema: id UUID, source TEXT (doc file path), chunk_index INT, text TEXT (raw chunk), embedding vector(1536), created_at. GRANT to ai_backend role for read/write. Enables Bond AI to answer device-specific questions (setup steps, error codes, maintenance) by embedding the user query and running cosine similarity against chunk embeddings.',
+ code:`<span class="ct">device_docs</span> {
+  id            UUID PK,
+  source        TEXT,        <span class="cc">-- doc file path</span>
+  chunk_index   INTEGER,
+  text          TEXT,        <span class="cc">-- raw chunk content</span>
+  embedding     <span class="ct">vector(1536)</span>,
+  created_at    TIMESTAMP
+}
+<span class="cc">-- cosine similarity search</span>
+<span class="cm">SELECT</span> text <span class="cm">FROM</span> device_docs
+<span class="cm">ORDER BY</span> embedding <-> $query_vec
+<span class="cm">LIMIT</span> 5;`,
+ conn:['vector-embeddings','bond-ai','postgres','barbot-ml','scraped-content-store']},
+
+{id:'party-sessions-schema',l:'Party Sessions Schema',cat:'data',sz:4,rel:.8,cl:'PostgreSQL',
+ desc:'party_sessions and party_guests tables (migration 032). party_sessions: id UUID, host_user_id TEXT, name VARCHAR(60), status (pending/active/completed/cancelled), invite_code CHAR(6) UNIQUE, menu_recipe_ids UUID[], device_id UUID, max_guests INT DEFAULT 20, created_at/started_at/ended_at. Indexes on host_user_id, invite_code, status. party_guests: id UUID, session_id FK CASCADE, nickname VARCHAR(30), guest_token TEXT, joined_at. Supports QR/invite-code guest joins without Barsys accounts.',
+ code:`<span class="ct">party_sessions</span> {
+  id UUID PK,
+  host_user_id TEXT,
+  name VARCHAR(60),
+  status <span class="cc">-- pending|active|completed|cancelled</span>
+  invite_code CHAR(6) UNIQUE,
+  menu_recipe_ids UUID[],
+  device_id UUID,
+  max_guests INT DEFAULT 20,
+  started_at, ended_at TIMESTAMPTZ
+}
+<span class="ct">party_guests</span> {
+  session_id FK → party_sessions CASCADE,
+  nickname VARCHAR(30),
+  guest_token TEXT
+}`,
+ conn:['party-api','party-websocket','party-guest-auth','postgres','devices-api','recipes-api']},
+
+// Android — Auth & Onboarding
+{id:'android-splash',l:'Android Splash Screen',cat:'android',sz:3,rel:.7,cl:'Kotlin',
+ desc:'Splash.kt activity is the app entry point. Displays for 3 seconds while checking authentication state and device setup. Routes to Signup activity if unauthenticated, or to Dashboard (main flow) if a valid session exists. Sets full-screen window flags and handles status bar color for the splash UI.',
+ conn:['android-auth-flow','android-home-main','android-app-preferences']},
+
+{id:'android-login',l:'Android Login Screen',cat:'android',sz:4,rel:.85,cl:'Kotlin',
+ desc:'Login.kt fragment handles phone-number OTP authentication on Android. Collects phone number with country code selection (CountriesDialog), sends OTP via auth API, and validates the 6-digit code. On success, navigates to Dashboard. Supports automatic OTP population via SmsBroadcastReceiver. Shares Signup activity host with Register.kt fragment.',
+ code:`<span class="cc">// OTP login flow</span>
+sendOtp(phone) → AuthApiService
+SmsBroadcastReceiver → auto-fill OTP
+verifyOtp(code) → storeSession()
+    → navigate(Dashboard)`,
+ conn:['android-auth-flow','android-register','android-sms-otp','android-splash','auth-api']},
+
+{id:'android-register',l:'Android Register Screen',cat:'android',sz:4,rel:.85,cl:'Kotlin',
+ desc:'Register.kt fragment handles new account creation. Collects DOB, email, full name, and phone number with OTP verification. Validates age against country-specific legal drinking age via CountriesDialog. On successful registration, routes to Success screen (3-second confirmation) then back to login. Shares Signup activity host with Login.kt.',
+ conn:['android-auth-flow','android-login','android-splash','auth-api','profile-api']},
+
+{id:'android-sms-otp',l:'Android SMS OTP Receiver',cat:'android',sz:3,rel:.7,cl:'Kotlin',
+ desc:'SmsBroadcastReceiver.kt uses Google Play Services SMS Retriever API to automatically intercept and parse incoming OTP SMS messages. Registered dynamically during login/register flows. Extracts the 6-digit code and broadcasts it via SmsListener interface to auto-populate the OTP input field — no SMS permission required (uses one-tap consent). Reduces friction in the authentication flow.',
+ conn:['android-login','android-register','android-auth-flow']},
+
+// Android — Missing screens
+{id:'android-device-paired',l:'Android Device Paired Screen',cat:'android',sz:4,rel:.8,cl:'Kotlin',
+ desc:'DevicePaired.kt fragment is the home screen shown after successful BLE device pairing. Displays device info, connection status, and quick-action shortcuts to mixlists. Shows the Bond AI bottom bar (bottomBarBot) for BarBot access while on this screen. Loads favourite recipes (GetFavouriteRecipe) and explore data (ExploreRecipeDataModel) eagerly so content is ready immediately. Navigates to ControlCenter for device management.',
+ conn:['android-connect-device','android-control-center','android-ble-service','android-barbot-ai','android-home-main','android-mixlist-screen']},
+
+{id:'android-drink-completion',l:'Android Drink Completion Screen',cat:'android',sz:4,rel:.8,cl:'Kotlin',
+ desc:'DrinkCompleted.kt fragment is shown after a pour sequence finishes. Displays drink name, garnish instructions, recipe details, and a completion summary. Navigates back to Dashboard or recipe detail on user action. Triggers the drink-complete event (records to made_cocktails via API) and resets the pour flow state. Posts analytics event for completed craft.',
+ conn:['android-pour-flow','android-recipe-details','made-cocktails-api','analytics-layer','android-home-main']},
+
+{id:'android-mixlist-detail',l:'Android Mixlist Detail',cat:'android',sz:4,rel:.8,cl:'Kotlin',
+ desc:'MixListDetail.kt fragment shows all recipes within a selected mixlist. Supports filtering by ready-to-pour availability and keyword search. Uses RecipeListAdapter to render recipe cards; tapping navigates to RecipeDetail. Loads recipe data from Room DB (local cache) with Retrofit fallback. Handles mixlist metadata display (author, description, tags) and delta sync state.',
+ conn:['android-mixlist-screen','android-recipe-details','android-local-db','android-recipe-model','mixlists-api','delta-sync']},
+
+{id:'android-edit-profile',l:'Android Edit Profile',cat:'android',sz:3,rel:.7,cl:'Kotlin',
+ desc:'EditProfile.kt fragment allows users to update name, DOB, email, and profile photo. Integrates ImagePickerBottomSheet for camera or gallery photo selection, uploads via media-upload API. Validates form fields before PATCH to profile API. Accessible from the Profile tab. Handles in-flight upload state with progress indicator.',
+ conn:['android-profile-screen','profile-api','media-upload','android-app-preferences']}
 
 ];
 
