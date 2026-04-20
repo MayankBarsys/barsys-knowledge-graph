@@ -2606,6 +2606,31 @@ CREATE INDEX USING hnsw
 
 // ── Audit additions 2026-04-19 ─────────────────────────────────────
 
+// iOS — screens missed due to wrong path in first audit
+{id:'ios-splash',l:'iOS Splash Screen',cat:'ios',sz:3,rel:.7,cl:'Swift',
+ desc:'SplashViewController.swift is the app entry point. Checks Keychain for a valid session_token via AppCoordinator; routes to the auth flow (LoginViewController) if absent or to the main TabBarViewController if authenticated. Also handles first-launch onboarding flag. Displays branding during the session-validity check.',
+ conn:['ios-app','auth-flow','coordinator-nav','onboarding']},
+
+{id:'ios-device-paired',l:'iOS Device Paired Screen',cat:'ios',sz:4,rel:.85,cl:'Swift',
+ desc:'DevicePairedViewController.swift is the home screen shown after a Barsys device is connected. Implements BleManagerDelegate and uses SideMenu. Shows a swipeable CollectionView of quick-action tiles (Explore Recipes, Cocktail Kits, Party Mode, Host an Event). Embeds a video view with mute/unmute. Bridges BLE connection status to the UI — BLE delegate callbacks update connection indicators. Entry point to ControlCenter and recipe discovery.',
+ conn:['ios-app','ble-manager','control-center','coordinator-nav','recipe-browse','party-api','device-pairing-ui']},
+
+{id:'ios-explore-recipes',l:'iOS Explore Recipes',cat:'ios',sz:4,rel:.8,cl:'Swift',
+ desc:'ExploreRecipesViewController.swift is the recipe discovery screen (created 01/09/25). Displays cached recipes via tblCacheRecipe from the local SQLite cache. Implements BleManagerDelegate and BlePermissionResponder to show device-context-aware availability. Shows device name and image in header. Entry point to MixlistDetailViewController or direct recipe selection.',
+ conn:['recipe-browse','local-db','delta-sync','ble-manager','ios-device-paired','coordinator-nav']},
+
+{id:'ios-mixlist-detail',l:'iOS Mixlist Detail',cat:'ios',sz:4,rel:.8,cl:'Swift',
+ desc:'MixlistDetailViewController.swift shows all recipes within a selected mixlist. Displays mixlist image, name, and a "Setup Stations" CTA (setupStationButton) that routes to station assignment if slots need ingredients. Implements BlePermissionResponder and BleManagerDelegate so recipe craft availability reflects real-time station state. ReadyToPourListViewController (same file) shows the filtered ready-to-pour subset with favourite toggle.',
+ conn:['mixlists','recipe-browse','ready-to-pour','station-slot-api','ble-manager','local-db','coordinator-nav']},
+
+{id:'device-rename',l:'Device Rename',cat:'ios',sz:3,rel:.7,cl:'Swift',
+ desc:'DeviceRenameViewController.swift + DeviceRenameApiService.swift allow users to rename their paired Barsys device. DeviceRenameApiService.checkDeviceExists() calls the Defteros Cloud Run staging endpoint (baseUrlForRecipes + /devices/:name/exists) to validate the new name before committing. On success, the renamed device name is persisted locally and synced to the backend via PATCH /devices. Accessible from the device settings section of ControlCenter.',
+ conn:['control-center','devices-api','defteros','coordinator-nav']},
+
+{id:'barbot-crafting-vc',l:'BarBot Crafting VC',cat:'ios',sz:4,rel:.85,cl:'Swift',
+ desc:'BarBotCraftingViewController.swift (created 03/06/25) is the pour execution screen launched from a BarBot AI chat suggestion. Implements BleManagerDelegate and BlePermissionResponder. Shows recipe name, per-ingredient progress (collectionViewProgress with PourProgressRingView), garnish instructions, and glass status (viewGlassStatus). Dismissable mid-pour. Distinct from the standard CraftingViewController — this is the BarBot-initiated pour path.',
+ conn:['barbot','crafting','ble-manager','ble-opcodes','pour-rate-service','drink-complete','coordinator-nav']},
+
 // iOS
 {id:'pour-rate-service',l:'Pour Rate Service',cat:'ios',sz:4,rel:.8,cl:'Swift',
  desc:'PourRateService.swift — @MainActor singleton that estimates hardware pour throughput (mL/sec) for the PourProgressRingView countdown ring. Maintains a capped rolling average (maxSamples=25, EMA-style) updated via record(volumeML:elapsedSeconds:) after each completed pour. Default conservative estimate: 3.0 mL/sec (~4 oz / 40 s on Barsys 360 pumps). Purely informational — authoritative state comes from BLE ACKs; ring reconciles on dispensingStarted/dispensingComplete events.',
