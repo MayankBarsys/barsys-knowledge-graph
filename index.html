@@ -299,8 +299,10 @@ letter-spacing:1px;text-align:center}
 .s-ai-btn{font-family:'JetBrains Mono';font-size:8px;letter-spacing:1px;
   background:var(--ac);color:#111;border:none;padding:5px 10px;border-radius:2px;
   cursor:pointer;white-space:nowrap;transition:opacity .15s;flex-shrink:0}
-.s-ai-btn:hover{opacity:.85}
+.s-ai-btn:hover:not(:disabled){opacity:.85}
 .s-ai-btn:disabled{opacity:.35;cursor:default}
+.s-ai-setup{background:transparent!important;color:var(--ac)!important;
+  border:0.5px solid rgba(196,162,101,.4)!important;opacity:1!important}
 /* history / empty state */
 .s-history-hdr{font-family:'JetBrains Mono';font-size:7px;letter-spacing:2px;
   color:var(--t3);text-transform:uppercase;margin:10px 0 5px;padding-bottom:5px;
@@ -384,9 +386,7 @@ letter-spacing:1px;text-align:center}
     <span class="s-icon">⌕</span>
     <input class="sinp" id="si" placeholder="Filter nodes · ↵ to ask AI" oninput="doSearch(this.value)" autocomplete="off" spellcheck="false">
     <button class="s-clear" id="s-clear" onclick="clearSearch()" title="Clear" style="display:none">×</button>
-    <div class="s-mode" id="s-mode-badge"></div>
-    <div id="kg-key-badge" class="kg-key-status unset" onclick="showKeyPrompt()" title="Set Anthropic API key">NO KEY</div>
-    <button class="s-ai-btn" id="s-ai-btn" onclick="fireAI(document.getElementById('si').value)" title="Ask AI (↵)" disabled>ASK AI</button>
+    <button class="s-ai-btn" id="s-ai-btn" onclick="handleAIBtn()" title="Ask AI (↵)">ASK AI</button>
     <button class="s-esc" onclick="toggleSearch()">ESC</button>
   </div>
   <div class="s-body">
@@ -3049,8 +3049,6 @@ const SUGGESTIONS=[
 
 function showEmptyState(){
   const srl=document.getElementById('srl');
-  const mb=document.getElementById('s-mode-badge');
-  mb.textContent='';mb.className='s-mode';
   const hist=loadHistory();
   let out='';
   if(hist.length){
@@ -3077,14 +3075,26 @@ function clearSearch(){
   const inp=document.getElementById('si');
   inp.value='';inp.focus();updateClearBtn();
   closeSearchDetail();
-  document.getElementById('s-mode-badge').textContent='';
-  document.getElementById('s-mode-badge').className='s-mode';
   showEmptyState();
+}
+function handleAIBtn(){
+  if(!KG_API_KEY){showKeyPrompt();return;}
+  fireAI(document.getElementById('si').value);
 }
 function updateClearBtn(){
   const v=document.getElementById('si').value;
   document.getElementById('s-clear').style.display=v?'block':'none';
-  document.getElementById('s-ai-btn').disabled=!v.trim();
+  syncAIBtn();
+}
+function syncAIBtn(){
+  const btn=document.getElementById('s-ai-btn');
+  if(!btn)return;
+  if(!KG_API_KEY){
+    btn.textContent='SET UP AI';btn.disabled=false;btn.classList.add('s-ai-setup');
+  } else {
+    btn.textContent='ASK AI';btn.classList.remove('s-ai-setup');
+    btn.disabled=!(document.getElementById('si').value||'').trim();
+  }
 }
 
 function toggleSearch(){
@@ -3094,7 +3104,7 @@ function toggleSearch(){
   sov.classList.toggle('on');
   if(!wasOn){
     const inp=document.getElementById('si');
-    inp.value='';updateClearBtn();inp.focus();
+    inp.value='';updateClearBtn();syncAIBtn();inp.focus();
     closeSearchDetail();showEmptyState();
   }
 }
@@ -3277,22 +3287,7 @@ function clearKey(){
   updateKeyBadge();
 }
 
-function updateKeyBadge(){
-  const b=document.getElementById('kg-key-badge');
-  if(!b)return;
-  if(KG_API_KEY==='__server__'){
-    b.textContent='AI READY';b.className='kg-key-status set';
-    b.title='AI search powered by server';b.onclick=null;
-  } else if(KG_API_KEY){
-    b.textContent='AI READY';b.className='kg-key-status set';
-    b.title='API key set — click to clear';
-    b.onclick=()=>{if(confirm('Clear stored API key?'))clearKey();};
-  } else {
-    b.textContent='NO KEY';b.className='kg-key-status unset';
-    b.title='Click to add your Anthropic API key';
-    b.onclick=showKeyPrompt;
-  }
-}
+function updateKeyBadge(){syncAIBtn();}
 
 function showKeyPrompt(){
   if(KG_API_KEY){if(confirm('Clear the stored API key?'))clearKey();return;}
@@ -3499,10 +3494,8 @@ async function fireAI(q){
   clearTimeout(_searchTimer);_searchReqId++;
   const reqId=_searchReqId;
   const srl=document.getElementById('srl');
-  const mb=document.getElementById('s-mode-badge');
   closeSearchDetail();
   saveToHistory(q,'ai');
-  mb.textContent='AI';mb.className='s-mode qa';
 
   if(!KG_API_KEY){
     srl.innerHTML='<div class="qa-answer">'
@@ -3539,13 +3532,11 @@ async function fireAI(q){
 // ── doSearch: instant node filter only (no AI, no debounce) ─────────
 function doSearch(q){
   const srl=document.getElementById('srl');
-  const mb=document.getElementById('s-mode-badge');
   updateClearBtn();
   if(!q.trim()){showEmptyState();return;}
 
   const words=q.toLowerCase().split(/[\s\W]+/).filter(w=>w.length>2&&!STOP.has(w));
   const ql=q.toLowerCase();
-  mb.textContent='FILTER';mb.className='s-mode';
   const ranked=scoreAndRank(words);
   const matches=ranked.length?ranked:N.filter(n=>
     n.l.toLowerCase().includes(ql)||n.id.toLowerCase().includes(ql)||(n.desc&&stripHtml(n.desc).toLowerCase().includes(ql))
