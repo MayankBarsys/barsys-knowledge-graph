@@ -2756,7 +2756,7 @@ const SHAPE_CHAR = {hex:'⬡',diamond:'◇',tri:'△'};
 
 const GH = 'https://github.com/barsysindia/barsys-ai-app-ios/blob/main/';
 let dark=true, filt='all', hov=null, sel=null;
-let cam={x:0,y:0}, zoom=1, dragging=false;
+let cam={x:0,y:0}, zoom=1, dragging=false, dragNode=null, dragOffX=0, dragOffY=0, _didDrag=false;
 let viewMode='graph';
 
 const cv=document.getElementById('cv');
@@ -2958,23 +2958,25 @@ function filterDirectory(q){
 // Physics
 function tick(){
   const repulsion=-1600,linkDist=220,linkStr=0.003,damp=0.88,centerGrav=0.006;
-  nodes.forEach(n=>{if(!n.visible)return;n.vx-=n.x*centerGrav;n.vy-=n.y*centerGrav;});
+  nodes.forEach(n=>{if(!n.visible||n.pinned)return;n.vx-=n.x*centerGrav;n.vy-=n.y*centerGrav;});
   const vis=nodes.filter(n=>n.visible);
   for(let i=0;i<vis.length;i++)for(let j=i+1;j<vis.length;j++){
     const a=vis[i],b=vis[j];
     let dx=b.x-a.x,dy=b.y-a.y;
     const d2=dx*dx+dy*dy,dist=Math.sqrt(d2)||1;
     const f=repulsion/d2,fx=(dx/dist)*f,fy=(dy/dist)*f;
-    a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy;
+    if(!a.pinned){a.vx+=fx;a.vy+=fy;}
+    if(!b.pinned){b.vx-=fx;b.vy-=fy;}
   }
   edges.forEach(e=>{
     if(!e.source.visible||!e.target.visible)return;
     let dx=e.target.x-e.source.x,dy=e.target.y-e.source.y;
     const dist=Math.sqrt(dx*dx+dy*dy)||1,f=(dist-linkDist)*linkStr;
     const fx=(dx/dist)*f,fy=(dy/dist)*f;
-    e.source.vx+=fx;e.source.vy+=fy;e.target.vx-=fx;e.target.vy-=fy;
+    if(!e.source.pinned){e.source.vx+=fx;e.source.vy+=fy;}
+    if(!e.target.pinned){e.target.vx-=fx;e.target.vy-=fy;}
   });
-  nodes.forEach(n=>{if(!n.visible)return;n.vx*=damp;n.vy*=damp;n.x+=n.vx;n.y+=n.vy;});
+  nodes.forEach(n=>{if(!n.visible||n.pinned)return;n.vx*=damp;n.vy*=damp;n.x+=n.vx;n.y+=n.vy;});
 }
 
 const _t=performance.now.bind(performance);
@@ -3095,22 +3097,54 @@ function findNode(ex,ey){
 
 cv.addEventListener('mousemove',e=>{
   const tip=document.getElementById('tip');
+  if(dragNode){
+    // Move the dragged node to cursor position in graph space
+    const p=screenToGraph(e.clientX,e.clientY);
+    dragNode.x=p.x+dragOffX;dragNode.y=p.y+dragOffY;
+    dragNode.vx=0;dragNode.vy=0;
+    _didDrag=true;tip.classList.remove('on');return;
+  }
   if(dragging){cam.x+=e.movementX;cam.y+=e.movementY;tip.classList.remove('on');return;}
   const found=findNode(e.clientX,e.clientY-40);
   if(found){
-    hov=found.id;cv.style.cursor='pointer';tip.classList.add('on');
+    hov=found.id;cv.style.cursor='grab';tip.classList.add('on');
     document.getElementById('tipC').textContent=CAT_LABELS[found.cat]||found.cat;
     document.getElementById('tipT').textContent=found.n.l;
     const cc=edges.filter(ed=>(ed.source.id===found.id||ed.target.id===found.id)&&ed.source.visible&&ed.target.visible).length;
-    document.getElementById('tipN').textContent=cc+' connections';
+    document.getElementById('tipN').textContent=cc+' connections · drag to reposition';
     tip.style.left=Math.min(e.clientX+16,W-200)+'px';tip.style.top=(e.clientY+16)+'px';
   }else{hov=null;cv.style.cursor='crosshair';tip.classList.remove('on');}
 });
-cv.addEventListener('mousedown',()=>{dragging=true;cv.style.cursor='grabbing';});
-addEventListener('mouseup',()=>{dragging=false;cv.style.cursor=hov?'pointer':'crosshair';});
+cv.addEventListener('mousedown',e=>{
+  const found=findNode(e.clientX,e.clientY-40);
+  if(found){
+    // Start node drag
+    dragNode=found;dragNode.pinned=true;_didDrag=false;
+    const p=screenToGraph(e.clientX,e.clientY);
+    dragOffX=dragNode.x-p.x;dragOffY=dragNode.y-p.y;
+    cv.style.cursor='grabbing';
+  } else {
+    // Start canvas pan
+    dragging=true;_didDrag=false;cv.style.cursor='grabbing';
+  }
+});
+addEventListener('mouseup',e=>{
+  if(dragNode){
+    // Keep node pinned where dropped; zero velocity so it stays put
+    dragNode.vx=0;dragNode.vy=0;
+    dragNode=null;
+  }
+  dragging=false;
+  cv.style.cursor=hov?'grab':'crosshair';
+});
 cv.addEventListener('click',e=>{
+  if(_didDrag){_didDrag=false;return;} // swallow click after drag
   const found=findNode(e.clientX,e.clientY-40);
   if(found){sel=found.id;openPanel(found.n);}else{sel=null;closePanel();}
+});
+cv.addEventListener('dblclick',e=>{
+  const found=findNode(e.clientX,e.clientY-40);
+  if(found){found.pinned=false;found.vx=0;found.vy=0;}
 });
 cv.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY>0?0.9:1.1;zoom=Math.max(0.2,Math.min(5,zoom*f));},{passive:false});
 function zoomTo(z){zoom=Math.max(0.2,Math.min(5,z));}
