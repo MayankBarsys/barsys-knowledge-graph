@@ -1893,38 +1893,47 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  conn:['ios-app','coordinator-nav','onboarding','profile-mgmt'],
  guide:`<div class="gs"><div class="gt">Load new URL</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Set <code>WebViewController.urlString</code> before presenting</span></div><div class="gstep"><span class="gsn">2</span><span class="gst"><code>viewDidLoad</code> auto-loads URL via <code>WKWebView.load(URLRequest)</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Implement <code>WKNavigationDelegate</code> to block external redirects</span></div></div></div>`},
 
-{id:'event-tracking-system',l:'Event Tracking System',cat:'ios',sz:4,rel:1,cl:'Swift',
- desc:'Centralized event tracking via TrackEventName enum with 74 named events covering the full user journey: onboarding (signup_started, otp_verified), discovery (recipe_viewed, search_performed), crafting (craft_started, drink_crafted, craft_abandoned), social (mixlist_shared, friend_added), hardware (device_paired, ble_connected, pour_started). All events routed through TrackEventsClass which POSTs to Defteros /analytics and also logs to Braze and Firebase. Each event carries user_id, session_id, timestamp, and context properties.',
- code:`<span class="cc">// TrackEventName.swift — full enum</span>
+{id:'event-tracking-system',l:'TrackEventName — 74 Events',cat:'ios',sz:5,rel:1,cl:'Swift',
+ desc:'TrackEventName enum in Constants+Enums.swift: 74 real string cases covering the full user journey. Auth (12): login_get_otp, login_resend_OTP, login_fail, login_successful, signup_begin, signup_get_otp, signup_resend_otp, signup_fail, signup_successful, login_redirect, view_signup_terms_of_service, view_signup_privacy_policy. Device (6): speakeasy_connected/disconnected, bluetooth_connected/disconnected/connection_lost, bluetooth_auto_reconnected. Crafting (9): craft_begin, barbot_craft_begin, craft_glass_placed/lifted, craft_make_my_own, craft_cancelled, craft_completed, craft_make_again, craft_customise. Recipe/Mixlist (6): view_recipe, view_mixlist, view_recipes_list, view_mixlists_list, favorite_recipe_added/removed. Edit (3): edit_recipe_begin/cancel/successful. Screens (7): Home_Screen_Viewed, favorites_viewed, view_control_center, view_make_my_own, profile_viewed, view_barbot_connect_device_screen, view_barbot_nav_bar. Make My Own (3): save/delete/insert_ingredient_make_my_own. Station cleaning (10): flush/clean begin/pause/completed, system_reset, tutorials/station-menu/clean-station viewed. Station mgmt (4): refill_station, added_ingredient_to_station, barbot_station_setup_begin, barbot_clean_station_begin. Data sync (4): data_download/update_successful/unsuccessful. User/settings (9): faq, contact_us, privacy_policy, terms_of_service, about_us, logOut, change_preference, delete_profile, edit_profile. Discovery (1): bluetooth_available_device_viewed.',
+ code:`<span class="cc">// Constants+Enums.swift — real 74 cases (grouped)</span>
 <span class="ck">enum</span> TrackEventName: String {
-  <span class="ck">case</span> signupStarted    = <span class="cs">"signup_started"</span>
-  <span class="ck">case</span> otpVerified      = <span class="cs">"otp_verified"</span>
-  <span class="ck">case</span> recipeViewed     = <span class="cs">"recipe_viewed"</span>
-  <span class="ck">case</span> craftStarted     = <span class="cs">"craft_started"</span>
-  <span class="ck">case</span> drinkCrafted     = <span class="cs">"drink_crafted"</span>
-  <span class="ck">case</span> devicePaired     = <span class="cs">"device_paired"</span>
-  <span class="cc">// 44+ more events...</span>
+  <span class="cc">// Auth (12)</span>
+  <span class="ck">case</span> tapLoginGetOTP           = <span class="cs">"login_get_otp"</span>
+  <span class="ck">case</span> loginSuccessFul          = <span class="cs">"login_successful"</span>
+  <span class="ck">case</span> loginUnsuccessfulOTP     = <span class="cs">"login_fail"</span>
+  <span class="ck">case</span> tapSignupRegister        = <span class="cs">"signup_successful"</span>
+  <span class="cc">// Device BLE (6)</span>
+  <span class="ck">case</span> onDeviceConnect          = <span class="cs">"bluetooth_connected"</span>
+  <span class="ck">case</span> onDeviceDisconnect       = <span class="cs">"bluetooth_disconnected"</span>
+  <span class="ck">case</span> onDeviceConnectionLost   = <span class="cs">"bluetooth_connection_lost"</span>
+  <span class="cc">// Crafting (9)</span>
+  <span class="ck">case</span> craftBegin               = <span class="cs">"craft_begin"</span>
+  <span class="ck">case</span> craftCompleted           = <span class="cs">"craft_completed"</span>
+  <span class="ck">case</span> craftCancelled           = <span class="cs">"craft_cancelled"</span>
+  <span class="cc">// ... 63 more cases in Constants+Enums.swift lines 95–184</span>
 }`,
- conn:['analytics-layer','ios-app','crafting','recipe-browse','barbot','device-pairing-ui','onboarding'],
- guide:`<div class="gs"><div class="gt">Debug missing event</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Verify <code>AnalyticsConsentManager.isConsentGranted == true</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Check event case exists in <code>TrackEventName</code> enum</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Monitor Defteros <code>/analytics</code> endpoint logs for 400/401 errors</span></div></div></div>`},
+ conn:['analytics-layer','track-events-engine','braze-integration','braze-auth-events','braze-crafting-events','crafting','recipe-browse','device-pairing-ui','station-cleaning','profile-mgmt'],
+ guide:`<div class="gs"><div class="gt">Debug a missing event</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Verify <code>AnalyticsConsentManager.isConsentGranted == true</code> — all events silently guard-return if false</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Confirm case exists in <code>TrackEventName</code> enum (Constants+Enums.swift lines 95–184)</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Check <code>TrackEventsClass.addBrazeCustomEventWithEventName</code> — consent gate fires before Braze call</span></div><div class="gstep"><span class="gsn">4</span><span class="gst">Check Defteros <code>POST /api/v1/analytics</code> logs for 400/401 — malformed session_id or missing user_id</span></div></div></div>`},
 
-{id:'analytics-consent-management',l:'Analytics Consent',cat:'ios',sz:3,rel:.9,cl:'Swift',
- desc:'AnalyticsConsentManager (enum, not class) enforces GDPR/CCPA consent. Key property: isConsentGranted (static var — checks UserDefaults via UserDefaultsClass). TrackEventsClass guards every event: guard AnalyticsConsentManager.isConsentGranted else { return }. Also exposes hasPromptBeenShown, isTrackingAuthorized, isIPCollectionPermitted, setConsent(_ granted: Bool), requestConsentIfNeeded(), resetConsent().',
- code:`<span class="cc">// AnalyticsConsentManager.swift</span>
-<span class="ck">class</span> AnalyticsConsentManager {
-  <span class="ck">enum</span> ConsentState { <span class="ck">case</span> notAsked, granted, denied }
-
-  <span class="ck">static func</span> hasConsent() -> Bool {
-    UserDefaults.standard.string(
-      forKey: <span class="cs">"analytics_consent"</span>) == <span class="cs">"granted"</span>
+{id:'analytics-consent-management',l:'Analytics Consent (ATT)',cat:'ios',sz:4,rel:.9,cl:'Swift',
+ desc:'AnalyticsConsentManager is an ENUM (not class) in AnalyticsConsentManager.swift. isConsentGranted: static var — reads UserDefaultsClass.getAnalyticsConsentGranted() AND checks getAnalyticsConsentPromptShown() — both must be true. isIPCollectionPermitted: requires isConsentGranted + ATT authorization on iOS 14+ (isTrackingAuthorized via AppTrackingTransparency). isTrackingAuthorized: wraps ATT status check. ALL Braze custom events, user identity calls, and custom API events are gated: guard AnalyticsConsentManager.isConsentGranted else { return }. Braze push automation also gated: configuration.push.automation.requestAuthorizationAtLaunch = AnalyticsConsentManager.isConsentGranted. Consent prompt shown from ChooseOptionsDashboardViewController.viewDidLoad on first load. Reset on logout (UIViewController+Navigation) and account deletion (MyProfileViewModel.deleteProfile).',
+ code:`<span class="cc">// AnalyticsConsentManager.swift — real implementation</span>
+<span class="ck">enum</span> AnalyticsConsentManager {
+  <span class="ck">static var</span> isConsentGranted: Bool {
+    <span class="ck">guard</span> UserDefaultsClass.getAnalyticsConsentPromptShown()
+    <span class="ck">else</span> { <span class="ck">return false</span> }
+    <span class="ck">return</span> UserDefaultsClass.getAnalyticsConsentGranted()
   }
-  <span class="ck">static func</span> setConsent(_ state: ConsentState) {
-    UserDefaults.standard.set(state.rawValue,
-      forKey: <span class="cs">"analytics_consent"</span>)
+  <span class="ck">static var</span> isIPCollectionPermitted: Bool {
+    <span class="ck">guard</span> isConsentGranted <span class="ck">else</span> { <span class="ck">return false</span> }
+    <span class="ck">if #available</span>(iOS 14, *) { <span class="ck">return</span> isTrackingAuthorized }
+    <span class="ck">return true</span>  <span class="cc">// pre-iOS 14: consent alone sufficient</span>
   }
-}`,
- conn:['analytics-layer','ios-app','onboarding','profile-mgmt'],
- guide:`<div class="gs"><div class="gt">Handle consent denial</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Call <code>requestConsentIfNeeded()</code> on first launch — modal shown once</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">If denied: all <code>TrackEventsClass</code> calls silently guard-return — no data collected</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">User can update via <code>setConsent(.granted)</code> from Settings screen</span></div></div></div>`},
+}
+<span class="cc">// Guard pattern used in ALL events:</span>
+<span class="ck">guard</span> AnalyticsConsentManager.isConsentGranted <span class="ck">else</span> { <span class="ck">return</span> }`,
+ conn:['analytics-layer','track-events-engine','braze-integration','ios-app','onboarding','profile-mgmt','session-tracking'],
+ guide:`<div class="gs"><div class="gt">Handle consent denial</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Prompt shown once from <code>ChooseOptionsDashboardViewController.viewDidLoad()</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">If denied: ALL events silently guard-return — Braze, custom API, and IP collection all blocked</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">IP collection additionally requires ATT authorization (iOS 14+) on top of consent</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Consent is reset on logout (UIViewController+Navigation) and on account deletion (MyProfileViewModel)</span></div></div></div>`},
 
 {id:'image-picker-upload',l:'Image Picker + Upload',cat:'ios',sz:3,rel:.85,cl:'Swift',
  desc:'ImagePickerViewController wraps UIImagePickerController for camera + photo library access. Used in two flows: (1) profile picture — user selects/captures photo, compressed to JPEG, uploaded via PUT /my/profile/picture to GCS via Defteros media-upload service; (2) ingredient scanning — UploadIngredientsImage flow sends image to barbot-ml for bottle/label detection. Image compression and aspect ratio normalization applied before upload. Camera permission handled via NSCameraUsageDescription.',
@@ -1962,26 +1971,147 @@ CFBundleURLSchemes: [<span class="cs">"barsysapp"</span>]
  guide:`<div class="gs"><div class="gt">Add video to onboarding</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Bundle MP4 in app bundle or use a CDN URL</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>VideoManager.play(url:from:)</code> — presents <code>AVPlayerViewController</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">Recipe model has no <code>video_url</code> field — do not attempt to read it from recipe data</span></div></div></div>`}
 
 // ── iOS — Additional Services ─────────────────────────────────────
-,{id:'braze-integration',l:'Braze Integration',cat:'ios',sz:5,rel:.9,cl:'Swift',
- desc:'Braze SDK initialized in AppDelegate with API key d5beb9b6-9499-4213-b4dd-f36322e1d444 and endpoint sdk.iad-07.braze.com. Configures push automation gated by AnalyticsConsentManager.isConsentGranted, BrazeInAppMessageUI for in-app messages, and UNUserNotificationCenter delegate for foreground/background notification handling. SDK authentication enabled for secure event delivery.',
+,{id:'braze-integration',l:'Braze SDK',cat:'ios',sz:6,rel:.9,cl:'Swift',
+ desc:'Braze SDK (BrazeKit + BrazeUI) initialized in AppDelegate.configureBraze(). API key d5beb9b6-9499-4213-b4dd-f36322e1d444, endpoint sdk.iad-07.braze.com. Push automation gated on AnalyticsConsentManager.isConsentGranted — requestAuthorizationAtLaunch only fires if consent was already granted. BrazeInAppMessageUI delegate discards messages if user is NOT logged in (guard UserDefaultsClass.getUserId() != nil). AppDelegate.braze is a static var — all event logging and user identity calls go through this singleton. sdkAuthentication = true for secure delivery. TrackEventsClass.addBrazeCustomEventWithEventName routes all 74 events here via braze.logCustomEvent(name:properties:).',
  code:`<span class="ck">private func</span> configureBraze() {
-  <span class="ck">let</span> configuration = Braze.Configuration(
-    apiKey: GlobalConstants.brazeApiKey,
-    endpoint: GlobalConstants.brazeEndpoint
+  <span class="ck">let</span> config = Braze.Configuration(
+    apiKey: GlobalConstants.brazeApiKey,   <span class="cc">// d5beb9b6-...</span>
+    endpoint: GlobalConstants.brazeEndpoint <span class="cc">// sdk.iad-07.braze.com</span>
   )
-  configuration.push.automation = <span class="ck">true</span>
-  configuration.push.automation.requestAuthorizationAtLaunch =
+  config.push.automation = <span class="ck">true</span>
+  config.push.automation.requestAuthorizationAtLaunch =
     AnalyticsConsentManager.isConsentGranted
-  configuration.forwardUniversalLinks = <span class="ck">true</span>
-  configuration.api.sdkAuthentication = <span class="ck">true</span>
-  <span class="ck">let</span> braze = Braze(configuration: configuration)
-  AppDelegate.braze = braze
+  config.api.sdkAuthentication = <span class="ck">true</span>
+  AppDelegate.braze = Braze(configuration: config)
   <span class="ck">let</span> brazeUI = BrazeInAppMessageUI()
-  brazeUI.delegate = <span class="ck">self</span>
+  brazeUI.delegate = <span class="ck">self</span>   <span class="cc">// discards if not logged in</span>
   AppDelegate.braze?.inAppMessagePresenter = brazeUI
+}
+<span class="cc">// In-app message gate:</span>
+<span class="ck">guard</span> UserDefaultsClass.getUserId() != <span class="ck">nil else</span> { <span class="ck">return</span> .discard }`,
+ conn:['ios-app','analytics-layer','analytics-consent-management','event-tracking-system','track-events-engine','braze-user-identity','braze-crafting-events','braze-auth-events','firebase-fcm','push-notifications-api'],
+ guide:`<div class="gs"><div class="gt">Add a new Braze custom event</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add case to <code>TrackEventName</code> enum in Constants+Enums.swift (lines 95–184)</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>TrackEventsClass().addBrazeCustomEventWithEventName(eventName:properties:)</code></span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst"><code>AnalyticsConsentManager.isConsentGranted</code> must be true — event silently dropped if false</span></div><div class="gstep hl"><span class="gsn">4</span><span class="gst">Verify in Braze dashboard → Analytics → Custom Events within 30 min of triggering</span></div></div></div>`}
+
+,{id:'track-events-engine',l:'TrackEventsClass Engine',cat:'ios',sz:5,rel:1,cl:'Swift',
+ desc:'TrackEventsClass.swift: dual-log engine. Every event fires to BOTH Defteros custom analytics API (POST {baseUrlForRecipes}/api/v1/analytics) AND Braze (logCustomEvent). Event payload schema: schema_version "barsys.event-v1", event string, ISO8601 timestamp, source {product:"ios_app", version, environment:"production|development"}, user {user_id, anonymous_id:deviceId if unauthenticated, locale, timezone, timezone_offset}, session {session_id:"Barsysai_{deviceId}_{timestamp}", ip (only if isIPCollectionPermitted), network:"wifi|cellular|none", mobile_model, mobile_os_version}, device {device_id:BLE device id, device_type:"Barsys 360|Coaster|Shaker"}, properties (event-specific), recipe_source "Barsys|User|AI|Custom", parent_event_id (craft_begin links to glass/cancel/complete events via Device.shared.craftBeginEventID).',
+ code:`<span class="cc">// TrackEventsClass.swift — dual-log pattern</span>
+<span class="ck">func</span> trackEvent(_ event: TrackEventName,
+                 properties: [String:Any]? = <span class="ck">nil</span>) {
+  <span class="ck">guard</span> AnalyticsConsentManager.isConsentGranted
+  <span class="ck">else</span> { <span class="ck">return</span> }
+  <span class="ck">let</span> payload: [String:Any] = [
+    <span class="cs">"schema_version"</span>: <span class="cs">"barsys.event-v1"</span>,
+    <span class="cs">"event"</span>: event.rawValue,
+    <span class="cs">"timestamp"</span>: ISO8601DateFormatter().string(from: Date()),
+    <span class="cs">"session"</span>: [
+      <span class="cs">"session_id"</span>: <span class="cs">"Barsysai_\(deviceId)_\(timestamp)"</span>,
+      <span class="cs">"network"</span>: connectionType,
+      <span class="cs">"ip"</span>: isIPCollectionPermitted ? ip : <span class="cs">""</span>
+    ]
+  ]
+  <span class="cc">// POST to Defteros</span>
+  analyticsApiService.trackEvent(payload)
+  <span class="cc">// Log to Braze</span>
+  addBrazeCustomEventWithEventName(event.rawValue, properties: properties)
 }`,
- conn:['ios-app','analytics-layer','analytics-consent-management','event-tracking-system','push-notifications-api'],
- guide:`<div class="gs"><div class="gt">Add a new Braze custom event</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Add case to <code>TrackEventName</code> enum in TrackEventName.swift</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>AppDelegate.braze?.logCustomEvent(eventName)</code> from TrackEventsClass</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Verify <code>AnalyticsConsentManager.isConsentGranted == true</code> before logging</span></div><div class="gstep hl"><span class="gsn">4</span><span class="gst">Check Braze dashboard under Analytics → Custom Events to confirm delivery within 30 min</span></div></div></div>`}
+ conn:['analytics-api','braze-integration','analytics-consent-management','event-tracking-system','session-tracking','ios-app'],
+ guide:`<div class="gs"><div class="gt">Verify event payload in staging</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Set breakpoint in <code>trackEvent</code> — inspect payload dict before POST</span></div><div class="gstep"><span class="gsn">2</span><span class="gst"><code>parent_event_id</code> links craft_begin → glass_placed/lifted → craft_complete via <code>Device.shared.craftBeginEventID</code></span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Anonymous users: <code>user_id</code> is empty, <code>anonymous_id</code> = device UUID from UserDefaults</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">IP only included if <code>isIPCollectionPermitted</code> (consent + ATT on iOS 14+)</span></div></div></div>`}
+
+,{id:'braze-user-identity',l:'Braze User Identity',cat:'ios',sz:4,rel:.9,cl:'Swift',
+ desc:'TrackEventsClass.swift manages four Braze identity lifecycle methods. brazeLoginUser(): called from ChooseOptionsDashboardViewController.viewDidLoad — changeUser(userId:) assigns Braze profile, sets pushNotificationSubscriptionState .subscribed, enables SDK. brazeUpdateProfile(): called from ChooseOptionsDashboardViewController.viewDidLoad + MyProfileViewModel.saveProfileData (lines 148, 164) — sets firstName (only), lastName always empty string (PII minimization), email, phoneNumber with "+" prefix. Guards: only updates if braze.user.id already matches userId (prevents race condition). brazeLogoutUser(): called from UIViewController+Navigation.logoutActionWithMessage (lines 27, 31, 62) on session expiry or manual logout — sets .unsubscribed + braze.enabled = false. brazeDeleteUser(): called from MyProfileViewModel.deleteProfile — wipeData() clears ALL local Braze data, enabled = false. All four methods are async Tasks guarded by AnalyticsConsentManager.isConsentGranted.',
+ code:`<span class="cc">// TrackEventsClass.swift — identity lifecycle</span>
+<span class="ck">func</span> brazeLoginUser() {
+  <span class="ck">guard</span> AnalyticsConsentManager.isConsentGranted <span class="ck">else</span> { <span class="ck">return</span> }
+  Task {
+    <span class="ck">await</span> AppDelegate.braze?.changeUser(userId: userId)
+    <span class="ck">await</span> AppDelegate.braze?.user.set(
+      pushNotificationSubscriptionState: .subscribed)
+  }
+}
+<span class="ck">func</span> brazeUpdateProfile() {
+  Task {
+    <span class="ck">await</span> AppDelegate.braze?.user.set(firstName: name)
+    <span class="ck">await</span> AppDelegate.braze?.user.set(lastName: <span class="cs">""</span>) <span class="cc">// intentional</span>
+    <span class="ck">await</span> AppDelegate.braze?.user.set(email: email)
+    <span class="ck">await</span> AppDelegate.braze?.user.set(phoneNumber: <span class="cs">"+\(phone)"</span>)
+  }
+}`,
+ conn:['braze-integration','auth-flow','profile-mgmt','analytics-consent-management','ios-app'],
+ guide:`<div class="gs"><div class="gt">PII handling in Braze</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst"><code>lastName</code> is always set to empty string — intentional PII minimization, do not change</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Phone sent as <code>+{digits only}</code> — stripped of non-numeric chars before formatting</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst"><code>brazeUpdateProfile()</code> guards <code>braze.user.id == userId</code> — skip update if IDs don't match (race condition guard)</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">On logout: <code>braze.enabled = false</code> stops all tracking immediately</span></div></div></div>`}
+
+,{id:'braze-crafting-events',l:'Braze Crafting Events',cat:'ios',sz:5,rel:1,cl:'Swift',
+ desc:'Craft flow fires the most data-rich Braze events. craftBegin: CraftingViewModel+Analytics.swift — properties include recipe_id, recipe_name, recipe_image, ingredients array (ingredient_name, primary_ingredient_type, secondary_ingredient_type, perishable, quantity, unit), source "Barsys|User|AI|Custom", device info. craftBeginEventID stored in Device.shared.craftBeginEventID — passed as parent_event_id on all subsequent craft events to link the session. barbotCraftBegin: BarBotCraftingViewModel+Tracking.swift — same properties + device type. craftGlassPlaced: triggered by glass sensor detection in CraftingViewModel. craftGlassLifted: fired by SocketDelegates when glass lifted during .dispensing or .cancelling&&hasStartedDispensing state. craftCancelled: includes poured_ingredients status array showing what was dispensed before cancel. craftCompleted: DrinkCompleteViewModel + BarBotCraftingViewModel — fired on DrinkCompleteVC load. craftMakeAgain + craftCustomise: DrinkCompleteViewModel on user tap.',
+ code:`<span class="cc">// CraftingViewModel+Analytics.swift</span>
+<span class="ck">func</span> trackCraftBegin(recipe: Recipe) {
+  <span class="ck">let</span> props: [String:Any] = [
+    <span class="cs">"recipe_id"</span>:    recipe.id,
+    <span class="cs">"recipe_name"</span>:  recipe.name,
+    <span class="cs">"ingredients"</span>: recipe.ingredients.map {[
+      <span class="cs">"ingredient_name"</span>:          $0.name,
+      <span class="cs">"primary_ingredient_type"</span>:   $0.category.primary,
+      <span class="cs">"secondary_ingredient_type"</span>: $0.category.secondary,
+      <span class="cs">"perishable"</span>: $0.perishable
+    ]},
+    <span class="cs">"source"</span>: recipeSource <span class="cc">// Barsys|User|AI|Custom</span>
+  ]
+  TrackEventsClass().trackEvent(.craftBegin, properties: props)
+  <span class="cc">// parent_event_id stored for glass/cancel/complete linkage</span>
+  Device.shared.craftBeginEventID = eventId
+}`,
+ conn:['braze-integration','track-events-engine','crafting','ble-manager','event-tracking-system','barbot','session-tracking'],
+ guide:`<div class="gs"><div class="gt">Trace a full craft session in Braze</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Find craft_begin event in Braze — note <code>parent_event_id</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Filter by that <code>parent_event_id</code> to find craft_glass_placed/lifted → craft_completed or craft_cancelled</span></div><div class="gstep"><span class="gsn">3</span><span class="gst"><code>craftGlassLifted</code> only fires during .dispensing state — if missing, glass was never detected mid-pour</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst"><code>craft_completed</code> fires on DrinkCompleteVC load, not on BLE "DATA Flushed" — BLE triggers navigation, not the event</span></div></div></div>`}
+
+,{id:'braze-auth-events',l:'Braze Auth Events',cat:'ios',sz:4,rel:.9,cl:'Swift',
+ desc:'Authentication flow emits 12 Braze events. LoginViewModel fires: login_get_otp (user submits phone), login_resend_OTP, login_successful (OTP verified), login_fail (OTP wrong). SignUpViewModel fires: signup_begin (tapLoginCreateAccount), signup_get_otp, signup_resend_otp, signup_fail, signup_successful (tapSignupRegister), login_redirect (tapSignupLogIn), view_signup_terms_of_service, view_signup_privacy_policy. All dual-logged to Defteros /analytics AND Braze. brazeLoginUser() called immediately after login_successful from ChooseOptionsDashboardViewController — Braze user profile created/linked at that point. Signup events carry phone_number property. No email or name sent at auth stage — those come from brazeUpdateProfile() post-onboarding.',
+ code:`<span class="cc">// LoginViewModel.swift — auth event flow</span>
+<span class="ck">func</span> verifyOTP(otp: String) {
+  authService.verify(otp) { [<span class="ck">weak self</span>] result <span class="ck">in</span>
+    <span class="ck">switch</span> result {
+    <span class="ck">case</span> .success:
+      TrackEventsClass().trackEvent(.loginSuccessFul)
+      <span class="cc">// → ChooseOptionsDashboardVC.viewDidLoad</span>
+      <span class="cc">// → brazeLoginUser() → changeUser(userId:)</span>
+    <span class="ck">case</span> .failure:
+      TrackEventsClass().trackEvent(.loginUnsuccessfulOTP)
+    }
+  }
+}`,
+ conn:['braze-integration','auth-flow','track-events-engine','event-tracking-system','braze-user-identity','onboarding'],
+ guide:`<div class="gs"><div class="gt">Build a re-engagement email flow in Braze</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Trigger: user has <code>login_successful</code> but NO <code>craft_begin</code> within 7 days → send "Make your first drink" email</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Trigger: <code>craft_cancelled</code> without <code>craft_completed</code> → send "something went wrong?" push</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Trigger: <code>favorite_recipe_added</code> but no <code>craft_begin</code> for that recipe_id → send "ready to craft it?" nudge</span></div></div></div>`}
+
+,{id:'session-tracking',l:'Session Tracking (Device)',cat:'ios',sz:3,rel:.85,cl:'Swift',
+ desc:'Device.swift is a Swift actor (thread-safe singleton). Captures system info on launch: deviceSystemName, deviceSystemVersion, deviceModel, deviceName, deviceLocalizedModel. Generates session ID in format "Barsysai_{device_id}_{iso8601_timestamp}" — used as session.session_id in every event payload. craftBeginEventID: String stored here and passed as parent_event_id on all subsequent craft events (glass_placed, glass_lifted, cancelled, completed) to enable full craft-session reconstruction in analytics. trackEventSessionID: cross-event session identifier. Device info (model, OS version) injected into every event payload by TrackEventsClass.',
+ code:`<span class="cc">// Device.swift</span>
+<span class="ck">actor</span> Device {
+  <span class="ck">static let</span> shared = Device()
+  <span class="ck">var</span> deviceSystemName    = <span class="cs">""</span>
+  <span class="ck">var</span> deviceSystemVersion = <span class="cs">""</span>
+  <span class="ck">var</span> deviceModel         = <span class="cs">""</span>
+  <span class="ck">var</span> craftBeginEventID   = <span class="cs">""</span>  <span class="cc">// links craft events</span>
+  <span class="ck">var</span> trackEventSessionID = <span class="cs">""</span>  <span class="cc">// cross-event session</span>
+}
+<span class="cc">// Session ID format:</span>
+<span class="cc">// "Barsysai_{deviceId}_{2026-04-20T12:34:56.789Z}"</span>`,
+ conn:['track-events-engine','braze-crafting-events','analytics-consent-management','ios-app'],
+ guide:`<div class="gs"><div class="gt">Reconstruct a craft session from analytics</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Find <code>craft_begin</code> event — note its <code>event_id</code></span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Query <code>parent_event_id = {craft_begin event_id}</code> — returns glass_placed, glass_lifted, craft_cancelled or craft_completed</span></div><div class="gstep"><span class="gsn">3</span><span class="gst">Use <code>session_id</code> (Barsysai_{deviceId}_{ts}) to find ALL events in the same app session regardless of craft</span></div></div></div>`}
+
+,{id:'firebase-fcm',l:'Firebase (FCM + Crashlytics)',cat:'ios',sz:3,rel:.8,cl:'Swift',
+ desc:'Firebase used for two purposes ONLY — push delivery and crash reporting. NO Analytics.logEvent calls exist in the codebase (verified full audit). FirebaseApp.configure() called in AppDelegate.application(_:didFinishLaunchingWithOptions:). Firebase Messaging (FCM): Messaging.messaging().apnsToken assigned on didRegisterForRemoteNotifications — FCM token registration enables Braze to deliver push notifications through Apple APNs. Crashlytics: initialized via FirebaseApp.configure(), captures unhandled exceptions and crashes. No custom crash logging calls found. GA4 / Firebase Analytics events: NOT implemented. TikTok SDK: NOT integrated. Mixpanel: NOT integrated.',
+ code:`<span class="cc">// AppDelegate.swift — Firebase setup</span>
+<span class="ck">import</span> FirebaseCore
+<span class="ck">import</span> FirebaseMessaging
+
+<span class="ck">func</span> configureFirebase() {
+  FirebaseApp.configure()  <span class="cc">// line 72</span>
+}
+<span class="ck">func</span> application(_ app: UIApplication,
+  didRegisterForRemoteNotificationsWithDeviceToken token: Data) {
+  Messaging.messaging().apnsToken = token  <span class="cc">// FCM token → Braze</span>
+}
+<span class="cc">// NOTE: No Analytics.logEvent() calls anywhere.</span>
+<span class="cc">// GA4, TikTok, Mixpanel: NOT integrated.</span>`,
+ conn:['braze-integration','ios-app','push-notifications-api'],
+ guide:`<div class="gs"><div class="gt">Enable GA4 / Firebase Analytics events</div><div class="gsteps"><div class="gstep"><span class="gsn">1</span><span class="gst">Import <code>FirebaseAnalytics</code> — already present in Podfile but no events wired up</span></div><div class="gstep"><span class="gsn">2</span><span class="gst">Call <code>Analytics.logEvent("event_name", parameters: [:])</code> from TrackEventsClass alongside existing Braze call</span></div><div class="gstep warn"><span class="gsn">!</span><span class="gst">TikTok pixel currently web-only (barsys.com) — no in-app SDK integrated. Adding it requires separate Podfile entry + AppDelegate init</span></div></div></div>`}
 
 ,{id:'connection-monitor',l:'Connection Monitor',cat:'ios',sz:4,rel:.8,cl:'Swift',
  desc:'Actor-based network reachability monitor in ReachabilityClass.swift using Network.framework NWPathMonitor. Detects real-time connectivity changes and identifies connection type (Wi-Fi, cellular, ethernet). Updates AppDelegate network state and posts system notifications when status changes, supporting async/await concurrency patterns throughout the app.',
